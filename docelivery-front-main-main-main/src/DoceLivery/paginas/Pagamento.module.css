@@ -1,0 +1,357 @@
+.payment_container {
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.payment_header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(138, 43, 226, 0.1);
+}
+
+.back_btn {
+    background: none;
+    border: none;
+    color: #8a2be2;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.back_btn:hover {
+    background: rgba(138, 43, 226, 0.1);
+}
+
+.payment_header h2 {
+    color: #8a2be2;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.order_summary {
+    background: rgba(138, 43, 226, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.order_summary h3 {
+    color: #8a2be2;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+}
+
+.store_info {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(138, 43, 226, 0.2);
+    color: #333;
+}
+
+.order_item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    color: #666;
+}
+
+.order_totals {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(138, 43, 226, 0.2);
+}
+
+.total_line {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    color: #666;
+}
+
+.final_total {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #8a2be2;
+    border-top: 1px solid rgba(138, 43, 226, 0.2);
+    margin-top: 10px;
+}
+
+.payment_methods h3 {
+    color: #8a2be2;
+    margin: 0 0 20px 0;
+    font-size: 1.2rem;
+}
+
+.payment_options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.payment_option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.payment_option:hover {
+    border-color: rgba(138, 43, 226, 0.4);
+    background: rgba(138, 43, 226, 0.05);
+}
+
+.payment_option.selected {
+    border-color: #8a2be2;
+    background: rgba(138, 43, 226, 0.1);
+}
+
+.payment_option input {
+    margin: 0;
+}
+
+.payment_option span {
+    font-weight: 600;
+    color: #333;
+}
+
+.confirm_btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.confirm_btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff1493 0%, #6a1ebf 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(138, 43, 226, 0.4);
+}
+
+.confirm_btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.card_form {
+    background: rgba(138, 43, 226, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.card_form h3 {
+    color: #8a2be2;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+}
+
+.card_input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.card_input:focus {
+    border-color: #8a2be2;
+}
+
+.card_row {
+    display: flex;
+    gap: 15px;
+}
+
+.card_input_small {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.card_input_small:focus {
+    border-color: #8a2be2;
+}
+
+.card_input_cvv {
+    width: 80px;
+    padding: 12px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+    text-align: center;
+}
+
+.card_input_cvv:focus {
+    border-color: #8a2be2;
+}
+
+.pix_section {
+    background: rgba(138, 43, 226, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.pix_section h3 {
+    color: #8a2be2;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+}
+
+.pix_code p {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.qr_placeholder {
+    background: white;
+    border: 2px dashed #8a2be2;
+    padding: 40px;
+    border-radius: 12px;
+    font-size: 2rem;
+    color: #8a2be2;
+    margin-bottom: 15px;
+}
+
+.pix_key {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+}
+
+.pix_key code {
+    flex: 1;
+    background: none;
+    color: #666;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.copy_btn {
+    background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.copy_btn:hover {
+    background: linear-gradient(135deg, #ff1493 0%, #6a1ebf 100%);
+}
+
+.saved_cards {
+    background: rgba(138, 43, 226, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.saved_cards h3 {
+    color: #8a2be2;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+}
+
+.saved_card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 2px solid rgba(138, 43, 226, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 10px;
+    background: white;
+}
+
+.saved_card:hover {
+    border-color: rgba(138, 43, 226, 0.4);
+    background: rgba(138, 43, 226, 0.05);
+}
+
+.saved_card.selected {
+    border-color: #8a2be2;
+    background: rgba(138, 43, 226, 0.1);
+}
+
+.card_info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.card_name {
+    font-weight: 600;
+    color: #333;
+}
+
+.card_number {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.card_type {
+    color: #8a2be2;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.new_card_btn {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    border: 2px dashed #8a2be2;
+    border-radius: 12px;
+    color: #8a2be2;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.new_card_btn:hover {
+    background: rgba(138, 43, 226, 0.1);
+    border-style: solid;
+}
