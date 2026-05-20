@@ -20,7 +20,7 @@ const LoginConfeiteiro = () => {
     setErro('');
     setLoading(true);
     try {
-      await authService.loginConfeiteiro(formData.email, formData.senha);
+      await authService.loginConfeiteiro(formData);
       // Se chegou aqui, o 200 OK aconteceu!
       navigate('/docelivery/confeiteiro/Confeiteiro-Dashboard');
     } catch (err) {

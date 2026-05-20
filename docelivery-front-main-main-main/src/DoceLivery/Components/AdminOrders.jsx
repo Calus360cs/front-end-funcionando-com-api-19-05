@@ -131,7 +131,7 @@ const AdminOrders = () => {
                     {getStatusText(order.status)}
                   </span>
                 </td>
-                <td>R$ {order.total.toFixed(2)}</td>
+                <td>R$ {(order.total ?? 0).toFixed(2)}</td>
                 <td>{new Date(order.date).toLocaleString('pt-BR')}</td>
                 <td>
                   <div className={Styles.actionButtons}>
@@ -159,7 +159,7 @@ const AdminOrders = () => {
               <p><strong>Loja:</strong> {selectedOrder.store}</p>
               <p><strong>Status:</strong> {getStatusText(selectedOrder.status)}</p>
               <p><strong>Data/Hora:</strong> {new Date(selectedOrder.date).toLocaleString('pt-BR')}</p>
-              <p><strong>Total:</strong> R$ {selectedOrder.total.toFixed(2)}</p>
+              <p><strong>Total:</strong> R$ {(selectedOrder.total ?? 0).toFixed(2)}</p>
               
               <h4 style={{ color: '#8a2be2', marginTop: '1.5rem', marginBottom: '1rem' }}>Itens do Pedido:</h4>
               {selectedOrder.items.map((item, index) => (
@@ -173,10 +173,10 @@ const AdminOrders = () => {
                     <strong>{item.name}</strong>
                   </p>
                   <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-                    Quantidade: {item.quantity} | Preço unitário: R$ {item.price.toFixed(2)}
+                    Quantidade: {item.quantity} | Preço unitário: R$ {(item.price ?? 0).toFixed(2)}
                   </p>
                   <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', fontWeight: '600' }}>
-                    Subtotal: R$ {(item.quantity * item.price).toFixed(2)}
+                    Subtotal: R$ {((item.quantity ?? 0) * (item.price ?? 0)).toFixed(2)}
                   </p>
                 </div>
               ))}

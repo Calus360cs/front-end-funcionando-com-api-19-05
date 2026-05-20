@@ -13,6 +13,8 @@ import { useCartStore } from "../context/CartContext.jsx"; // Caminho corrigido 
 import { useFavorites } from "../context/FavoritesContext.jsx";
 
 // Importações dos Componentes e Dados existentes
+import StoreService from '../services/storeService';
+import ProductService from '../services/produtoService.js';
 import MOCK_DATA from "../Components/MockData";
 import StoreCard from "../Components/StoreCard";
 import OfferItem from "../Components/OfferItem";
@@ -224,28 +226,39 @@ const HomePage = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                
-                // TODO: Substituir por chamadas reais da API
-                // const [storesData, offersData, categoriesData] = await Promise.all([
-                //     StoreService.getStores(),
-                //     ProductService.getOffers(),
-                //     ProductService.getCategories()
-                // ]);
-                
-                // Usando dados mock temporariamente
-                const storesWithImages = MOCK_DATA.stores.map(store => ({
+
+                const storesData = await StoreService.getStores().catch(() => null);
+
+                const storesRaw = storesData?.length ? storesData.map(s => ({
+                    id: s.id,
+                    name: s.nomeLoja || s.nomeConfeitaria || s.nome,
+                    nomeLoja: s.nomeLoja || s.nomeConfeitaria || s.nome,
+                    categoria: s.categoria,
+                    promocao: s.promocao,
+                    telefone: s.telefone || '',
+                    endereco: s.endereco || '',
+                    descricao: s.descricao || '',
+                    rating: s.avaliacao || 4.5,
+                    deliveryTime: s.tempoEntrega || '30-45 min',
+                    deliveryFee: s.taxaEntrega || 'R$ 5,00',
+                    logoUrl: s.imagemUrl ? `http://localhost:8080/uploads/${s.imagemUrl}` : IMAGE_MAP['brigadeiro'],
+                    imagemUrl: s.imagemUrl || null,
+                    featured: s.destaque || false,
+                    lat: s.lat,
+                    lng: s.lng
+                })) : MOCK_DATA.stores.map(store => ({
                     ...store,
                     logoUrl: IMAGE_MAP[store.logoKey]
                 }));
 
-                const offersWithImages = MOCK_DATA.offers.map(offer => ({
+                const offersRaw = MOCK_DATA.offers.map(offer => ({
                     ...offer,
-                    imageUrl: IMAGE_MAP[offer.imageKey]
+                    imageUrl: offer.imageUrl || (offer.imageKey ? IMAGE_MAP[offer.imageKey] : IMAGE_MAP['brigadeiro'])
                 }));
 
-                localStorage.setItem('stores', JSON.stringify(storesWithImages));
-                setStores(storesWithImages);
-                setOffers(offersWithImages);
+                localStorage.setItem('stores', JSON.stringify(storesRaw));
+                setStores(storesRaw);
+                setOffers(offersRaw);
                 setCategories(MOCK_DATA.categories);
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
@@ -892,25 +905,13 @@ const HomePage = () => {
                                     type="submit"
                                     className={Styles.save_address_btn}
                                 >
-                                    {fetchedAddress ? 'Confirmar Endereço' : 'Buscar Endereço'}
+                                    {fetchedAddress ? 'Confirmar Endereço' : 'Buscar CEP'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-            
-
-
-            {/* MODAL DE AVALIAÇÃO APÓS ENTREGA */}
-            {pendingRatingOrder && (
-                <OrderCompletion
-                    order={pendingRatingOrder}
-                    onClose={() => setPendingRatingOrder(null)}
-                    onSubmitRating={handleRatingSubmit}
-                />
-            )}
-
         </div>
     );
 };

@@ -1,6 +1,30 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const StoreContext = createContext();
+
+const getInitialStoreData = () => {
+    const dadosSalvos = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+    const lojaSalva = dadosSalvos.loja || {};
+
+    return {
+        name: lojaSalva.nomeFantasia || dadosSalvos.nomeConfeiteira || dadosSalvos.nomeLoja || localStorage.getItem('nomeLoja') || localStorage.getItem('userName') || 'Minha Confeitaria',
+        description: lojaSalva.descricao || dadosSalvos.descricaoLoja || 'Doces artesanais feitos com carinho',
+        phone: lojaSalva.telefone || dadosSalvos.telefone || localStorage.getItem('userTelefone') || '(11) 99999-9999',
+        email: dadosSalvos.email || localStorage.getItem('userEmail') || 'contato@minhaconfeiteria.com',
+        address: lojaSalva.endereco || dadosSalvos.endereco || localStorage.getItem('userEndereco') || 'Rua das Flores, 123 - Centro',
+        cidade: dadosSalvos.cidade || lojaSalva.cidade || localStorage.getItem('userCidade') || '',
+        estado: dadosSalvos.estado || lojaSalva.estado || localStorage.getItem('userUf') || '',
+        cnpj: lojaSalva.cnpj || dadosSalvos.cnpj || localStorage.getItem('userCnpj') || '',
+        nomeConfeiteiro: dadosSalvos.nome || dadosSalvos.nomeConfeiteiro || localStorage.getItem('userName') || localStorage.getItem('nomeConfeiteiro') || 'Confeiteiro',
+        workingHours: '08:00 - 18:00',
+        logo: null,
+        banner: null,
+        specialties: ['Bolos', 'Cupcakes', 'Tortas'],
+        deliveryFee: 5.00,
+        minOrder: 20.00,
+        isOpen: true
+    };
+};
 
 export const useStore = () => {
     const context = useContext(StoreContext);
@@ -11,26 +35,13 @@ export const useStore = () => {
 };
 
 export const StoreProvider = ({ children }) => {
-    const dadosSalvos = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+    const [storeData, setStoreData] = useState(getInitialStoreData);
 
-    const [storeData, setStoreData] = useState({
-        name: dadosSalvos.nomeConfeitaria || localStorage.getItem('userName') || 'Minha Confeitaria',
-        description: 'Doces artesanais feitos com carinho',
-        phone: dadosSalvos.telefone || '(11) 99999-9999',
-        email: dadosSalvos.email || localStorage.getItem('userEmail') || 'contato@minhaconfeitaria.com',
-        address: dadosSalvos.endereco || 'Rua das Flores, 123 - Centro',
-        cidade: dadosSalvos.cidade || '',
-        estado: dadosSalvos.estado || '',
-        cnpj: dadosSalvos.cnpj || '',
-        nomeConfeiteiro: dadosSalvos.nome || localStorage.getItem('userName') || 'Confeiteiro',
-        workingHours: '08:00 - 18:00',
-        logo: null,
-        banner: null,
-        specialties: ['Bolos', 'Cupcakes', 'Tortas'],
-        deliveryFee: 5.00,
-        minOrder: 20.00,
-        isOpen: true
-    });
+    useEffect(() => {
+        const handleStorageUpdate = () => setStoreData(getInitialStoreData());
+        window.addEventListener('localStorageUpdate', handleStorageUpdate);
+        return () => window.removeEventListener('localStorageUpdate', handleStorageUpdate);
+    }, []);
 
     const [products, setProducts] = useState([
         {

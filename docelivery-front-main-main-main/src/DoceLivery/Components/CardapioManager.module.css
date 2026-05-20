@@ -31,17 +31,17 @@
 
 .viewToggle {
     display: flex;
-    background: #F3F4F6;
-    border-radius: 8px;
-    padding: 2px;
+    background: #fdf2e9;
+    border-radius: 12px;
+    padding: 4px;
 }
 
 .toggleBtn {
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
-    color: #6B7280;
-    border-radius: 6px;
+    color: #a78bfa;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -50,35 +50,37 @@
 }
 
 .toggleBtn.active {
-    background: white;
-    color: #8B5CF6;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: #f3e8ff;
+    color: #7c3aed;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
 }
 
-.addBtn, .comboBtn {
-    background: #8B5CF6;
+.addBtn, .kitFestaBtn {
+    background: #8b5cf6;
     color: white;
     border: none;
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 12px 18px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s;
 }
 
-.comboBtn {
-    background: #10B981;
+.kitFestaBtn {
+    background: #ec4899;
 }
 
 .addBtn:hover {
-    background: #7C3AED;
+    background: #7c3aed;
+    transform: translateY(-1px);
 }
 
-.comboBtn:hover {
-    background: #059669;
+.kitFestaBtn:hover {
+    background: #db2777;
+    transform: translateY(-1px);
 }
 
 .filters {
@@ -88,13 +90,13 @@
     align-items: center;
 }
 
-.searchBox {
+.kitFestaSearch {
     position: relative;
     flex: 1;
     max-width: 400px;
 }
 
-.searchBox svg {
+.kitFestaSearch svg {
     position: absolute;
     left: 12px;
     top: 50%;
@@ -102,13 +104,73 @@
     color: #9CA3AF;
 }
 
-.searchBox input {
+.emptyCategoryMsg {
+    font-size: 13px;
+    color: #9CA3AF;
+    font-style: italic;
+    padding: 10px 0;
+    margin: 0;
+}
+
+.form-kit {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px 0;
+}
+
+.form-kit h3 {
+    font-size: 16px;
+    margin: 5px 0;
+    color: #1F2937;
+}
+
+.lista-produtos-check {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f9fafb;
+}
+
+.item-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.item-check:last-child {
+    border-bottom: none;
+}
+
+.item-check label {
+    font-size: 14px;
+    cursor: pointer;
+    color: #374151;
+}
+
+.kitFestaSearch input {
     width: 100%;
     padding: 12px 12px 12px 40px;
     border: 1px solid #D1D5DB;
     border-radius: 8px;
     font-size: 14px;
     box-sizing: border-box;
+}
+
+.badgeKitFesta {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #10B981;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .categoryFilter {
@@ -138,21 +200,21 @@
 }
 
 .produtoCard {
-    background: white;
-    border-radius: 12px;
+    background: #fff8f3;
+    border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid #E5E7EB;
+    box-shadow: 0 8px 20px rgba(113, 70, 39, 0.08);
+    border: 1px solid #f4d4c8;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .produtoCard:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 24px rgba(113, 70, 39, 0.14);
 }
 
 .produtoCard.indisponivel {
-    opacity: 0.7;
+    opacity: 0.78;
 }
 
 .produtoImagem {
@@ -173,7 +235,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(55, 65, 81, 0.7);
     color: white;
     display: flex;
     align-items: center;
@@ -182,27 +244,38 @@
 }
 
 .produtoInfo {
-    padding: 16px;
+    padding: 18px 18px 16px;
 }
 
 .produtoInfo h3 {
     margin: 0 0 8px 0;
-    color: #1F2937;
-    font-size: 18px;
+    color: #462a17;
+    font-size: 19px;
 }
 
 .produtoInfo p {
-    margin: 0 0 12px 0;
-    color: #6B7280;
+    margin: 0 0 14px 0;
+    color: #5b4a3f;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.55;
 }
 
-.produtoMeta {
+ .infoFooter {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
+    margin: 12px 0;
+    padding: 2px 0;
+ }
+
+ .estoque {
+    font-size: 13px;
+    color: #6B7280;
+    background: #F3F4F6;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-weight: 600;
+ }
 
 .preco {
     font-weight: 700;
@@ -252,23 +325,34 @@
     color: white;
 }
 
-.combosSection {
+.kitFestaSection {
     margin-top: 40px;
 }
 
-.combosSection h3 {
+.kitFestaSection h3 {
     margin-bottom: 20px;
     color: #1F2937;
     font-size: 24px;
 }
 
-.combosGrid {
+.kitFestaGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
 }
 
-.comboCard {
+.kitBadge {
+    display: inline-block;
+    margin: 10px 0 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #E0F2FE;
+    color: #0369A1;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.kitFestaCard {
     background: white;
     border-radius: 12px;
     padding: 20px;
@@ -279,30 +363,30 @@
     align-items: center;
 }
 
-.comboInfo h4 {
+.kitFestaInfo h4 {
     margin: 0 0 8px 0;
     color: #1F2937;
     font-size: 18px;
 }
 
-.comboInfo p {
+.kitFestaInfo p {
     margin: 0 0 8px 0;
     color: #6B7280;
     font-size: 14px;
 }
 
-.comboPreco {
+.kitFestaPreco {
     font-weight: 700;
     color: #10B981;
     font-size: 16px;
 }
 
-.comboActions {
+.kitFestaActions {
     display: flex;
     gap: 8px;
 }
 
-.comboActions button {
+.kitFestaActions button {
     width: 36px;
     height: 36px;
     border: none;
@@ -313,12 +397,12 @@
     justify-content: center;
 }
 
-.comboActions button:first-child {
+.kitFestaActions button:first-child {
     background: #3B82F6;
     color: white;
 }
 
-.comboActions button:last-child {
+.kitFestaActions button:last-child {
     background: #EF4444;
     color: white;
 }
@@ -337,88 +421,521 @@
 }
 
 .modal {
-    background: white;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
+    background: #fff0fb;
+    border-radius: 20px;
+    width: 92%;
+    max-width: 720px;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 22px 60px rgba(139, 92, 246, 0.16);
+    animation: slideUp 0.25s ease-out;
+}
+
+.modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal::-webkit-scrollbar-track {
+    background: #f9e8f8;
+    border-radius: 10px;
+}
+
+.modal::-webkit-scrollbar-thumb {
+    background: #d8b4fe;
+    border-radius: 10px;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+    background: #c084fc;
 }
 
 .modalHeader {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #E5E7EB;
+    align-items: flex-start;
+    padding: 24px 26px 18px;
+    border-bottom: 1px solid #e9d5ff;
 }
 
 .modalHeader h3 {
     margin: 0;
-    color: #1F2937;
-    font-size: 20px;
+    color: #6d28d9;
+    font-size: 24px;
+    letter-spacing: 0.02em;
+}
+
+.modalSubtitle {
+    margin: 8px 0 0;
+    color: #7c3aed;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 420px;
 }
 
 .modalHeader button {
     background: none;
     border: none;
     font-size: 24px;
-    color: #6B7280;
+    color: #9333ea;
     cursor: pointer;
+    transition: color 0.2s;
 }
 
-.modalContent {
-    padding: 20px;
+.modalHeader button:hover {
+    color: #6d28d9;
+}
+
+/* Nova seção de formulário estruturada */
+.formSection {
+    padding: 22px 24px;
+    border: 1px solid #ede9fe;
+    border-radius: 18px;
+    background: #faf5ff;
+    margin-bottom: 18px;
+}
+
+.formSectionTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7c3aed;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.formSectionTitle svg {
+    font-size: 18px;
+}
+
+.imagePreviewContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    background: #fdf4ff;
+    border: 2px dashed #c4b5fd;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    text-align: center;
+}
+
+.imagePreviewContainer:hover {
+    background: #f5e8ff;
+    border-color: #8b5cf6;
+    transform: translateY(-1px);
+}
+
+.imagePreviewBox {
+    width: 140px;
+    height: 140px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e9d5ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.imagePreviewBox img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.uploadLabel {
+    font-size: 15px;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-bottom: 4px;
+}
+
+.uploadHint {
+    font-size: 13px;
+    color: #9333ea;
+}
+
+.imageUploadActions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.uploadButton {
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: none;
+    background: #8b5cf6;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.uploadButton:hover {
+    background: #7c3aed;
+    transform: translateY(-1px);
+}
+
+.uploadGuidance {
+    font-size: 13px;
+    color: #7c3aed;
+}
+
+/* Grid de duas colunas para campos lado a lado */
+.twoColumnGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 .formGroup {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+}
+
+.formGroup.fullWidth {
+    grid-column: 1 / -1;
 }
 
 .formGroup label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     color: #374151;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .formGroup input,
 .formGroup select,
 .formGroup textarea {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #D1D5DB;
-    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid #e9d5ff;
+    border-radius: 12px;
+    background: #fff7ff;
     font-size: 14px;
     box-sizing: border-box;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+    background: #ffffff;
 }
 
 .formGroup textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 100px;
 }
 
-.formRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+.checkboxGroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    background: #fff7ff;
+    border-radius: 14px;
+    border: 1px solid #e9d5ff;
+    min-height: 58px;
 }
 
-.produtosList {
-    max-height: 200px;
+.checkboxGroup input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #7c3aed;
+    flex-shrink: 0;
+}
+
+.checkboxGroup label {
+    margin: 0;
+    cursor: pointer;
+    text-transform: none;
+    font-weight: 600;
+    color: #6d28d9;
+    font-size: 14px;
+}
+
+/* Kit festa builder */
+.kitFestaBuilder {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #D1D5DB;
-    border-radius: 8px;
     padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
 }
 
-.checkboxItem {
+.kitHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+}
+
+.kitFestaItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    background: #fff6f1;
+    box-shadow: 0 2px 8px rgba(113, 70, 39, 0.06);
+}
+
+.kitFestaItem:hover {
+    background-color: #fff2e6;
+    border-color: #fbbf24;
+    transform: translateX(2px);
+}
+
+.kitFestaItem.selected {
+    background-color: #ffedd5;
+    border-color: #fb923c;
+    box-shadow: 0 6px 12px rgba(251, 146, 60, 0.15);
+}
+
+.kitFestaItemImage {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.kitFestaItemImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.kitFestaItemInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.itemName {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.itemPrice {
+    font-size: 13px;
+    color: #059669;
+    font-weight: 600;
+}
+
+.kitFestaCheckbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #8B5CF6;
+}
+
+.totalInfo {
+    margin-top: 16px;
+    padding: 14px;
+    background: linear-gradient(135deg, #ffedd5 0%, #fef3c7 100%);
+    border-radius: 10px;
+    border: 1px solid #fcd49f;
+    text-align: right;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.modalContent {
+    padding: 0;
+}
+
+.modalActions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 22px 24px;
+    border-top: 1px solid #f4d5cd;
+    background: #fff4ef;
+}
+
+.cancelBtn {
+    padding: 12px 24px;
+    border: 1px solid #e9d5ff;
+    background: #faf5ff;
+    color: #6d28d9;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.cancelBtn:hover {
+    background: #f3e8ff;
+    border-color: #c4b5fd;
+    color: #5b21b6;
+}
+
+.saveBtn {
+    padding: 12px 28px;
+    background: #8b5cf6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 0;
+    box-shadow: 0 14px 26px rgba(139, 92, 246, 0.22);
+}
+
+.saveBtn:hover {
+    background: #7c3aed;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(124, 58, 237, 0.24);
+}
+
+.saveBtn:active {
+    transform: translateY(0);
+}
+
+.kitFestaSelectionGrid {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    padding: 15px;
+    background: #fdfdfd;
+}
+
+.categoryGroup {
+    margin-bottom: 20px;
+}
+
+.categoryDivider {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8B5CF6;
+    border-bottom: 2px solid #F3F4F6;
+    padding-bottom: 5px;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+}
+
+.kitFestaBuilder {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.kitFestaItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
     cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background: #fff;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.kitFestaItem:hover { 
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.kitFestaItem.selected {
+    background-color: #f0f7ff;
+    border-color: #3b82f6;
+}
+
+.kitFestaItemImage {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.kitFestaItemImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.kitFestaItemInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.itemName {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.itemPrice {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.kitFestaCheckbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kitFestaCheckbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.totalInfo {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px dashed #d1d5db;
+    text-align: right;
+    font-weight: 600;
 }
 
 .checkboxItem input {

@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import StoreService from '../services/storeService';
 import Style from './Lojas.module.css';
 
 function Lojas() {
+  const [lojas, setLojas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    StoreService.getStores()
+      .then(data => setLojas(data || []))
+      .catch(err => console.error('Erro ao carregar lojas:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section className={Style.lojas}>
       <h2>Nossas Lojas Parceiras</h2>
-      <div className={Style.lojasGrid}>
-        <div className={Style.lojaCard}>
-          <h3>Doce Mimi</h3>
-          <p>Especializada em bolos e doces artesanais</p>
+      {loading ? (
+        <p>Carregando lojas...</p>
+      ) : (
+        <div className={Style.lojasGrid}>
+          {lojas.map(loja => (
+            <div key={loja.id} className={Style.lojaCard}>
+              <h3>{loja.nomeLoja}</h3>
+              <p>{loja.categoria}</p>
+              {loja.promocao && <span className={Style.promocao}>{loja.promocao}</span>}
+              {loja.telefone && <p className={Style.telefone}>{loja.telefone}</p>}
+            </div>
+          ))}
         </div>
-        <div className={Style.lojaCard}>
-          <h3>Doce Paladar</h3>
-          <p>Brigadeiros gourmet e sobremesas</p>
-        </div>
-        <div className={Style.lojaCard}>
-          <h3>Doce Sabor</h3>
-          <p>Tortas e cupcakes personalizados</p>
-        </div>
-      </div>
+      )}
     </section>
   );
 }

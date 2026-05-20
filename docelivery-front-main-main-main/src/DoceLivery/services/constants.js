@@ -1,10 +1,12 @@
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN_CLIENTE: '/auth/cliente/login',
+    LOGIN_CLIENTE: '/auth/login',
     LOGIN_CONFEITEIRO: '/auth/confeiteiro/login',
     LOGIN_ADMIN: '/auth/admin/login',
+    LOGIN_ENTREGADOR: '/auth/entregador/login',
     CADASTRO_CLIENTE: '/auth/cliente/cadastro',
     CADASTRO_CONFEITEIRO: '/auth/confeiteiro/cadastro',
+    CADASTRO_ENTREGADOR: '/auth/entregador/cadastro',
     RECUPERAR_SENHA: '/auth/recuperar-senha',
   },
   STORES: {
@@ -23,14 +25,16 @@ export const API_ENDPOINTS = {
     STORE: (id) => `/pedidos/loja/${id}`,
     BY_ID: (id) => `/pedidos/${id}`,
     STATUS: (id) => `/pedidos/${id}/status`,
+    FILA: (id) => `/pedidos/confeiteiro/${id}/fila`,
+    HISTORICO: (id) => `/pedidos/confeiteiro/${id}/historico`,
   },
-  PRODUCTS: {
-    LIST: '/products',
-    BY_STORE: (id) => `/products/store/${id}`,
-    BY_ID: (id) => `/products/${id}`,
-    OFFERS: '/products/offers',
-    CATEGORIES: '/products/categories',
-    SEARCH: '/products/search',
+  PRODUTO: {
+    LIST: '/produtos',
+    BY_STORE: (id) => `/produtos/store/${id}`,
+    BY_ID: (id) => `/produtos/${id}`,
+    OFFERS: '/produtos/offers',
+    CATEGORIES: '/produtos/categories',
+    SEARCH: '/produtos/search',
   },
   USER: {
     PROFILE: '/user/profile',

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const LojaContext = createContext();
 
@@ -10,31 +10,40 @@ export const useLoja = () => {
     return context;
 };
 
+const getInitialDadosLoja = () => {
+    const saved = localStorage.getItem('dadosLoja');
+    if (saved) return JSON.parse(saved);
+    const cadastro = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+    const lojaSalva = cadastro.loja || {};
+    return {
+        id: 1,
+        nome: lojaSalva.nomeFantasia || cadastro.nomeConfeitaria || cadastro.nomeLoja || localStorage.getItem('nomeLoja') || 'Minha Confeitaria',
+        endereco: lojaSalva.endereco || cadastro.endereco || 'Rua das Flores, 123 - Centro',
+        telefone: lojaSalva.telefone || cadastro.telefone || '(11) 99999-9999',
+        descricao: lojaSalva.descricao || cadastro.descricao || 'Confeitaria artesanal feita com carinho.',
+        imagem: lojaSalva.imagem || null,
+        avaliacao: 4.8,
+        totalAvaliacoes: 127,
+        horarioFuncionamento: lojaSalva.horarioFuncionamento || {
+            segunda: '8:00 - 18:00',
+            terca: '8:00 - 18:00',
+            quarta: '8:00 - 18:00',
+            quinta: '8:00 - 18:00',
+            sexta: '8:00 - 18:00',
+            sabado: '8:00 - 16:00',
+            domingo: 'Fechado'
+        }
+    };
+};
+
 export const LojaProvider = ({ children }) => {
-    const [dadosLoja, setDadosLoja] = useState(() => {
-        const saved = localStorage.getItem('dadosLoja');
-        if (saved) return JSON.parse(saved);
-        const cadastro = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
-        return {
-            id: 1,
-            nome: cadastro.nomeConfeitaria || localStorage.getItem('userName') || 'Minha Confeitaria',
-            endereco: cadastro.endereco || 'Rua das Flores, 123 - Centro',
-            telefone: cadastro.telefone || '(11) 99999-9999',
-            descricao: 'Confeitaria artesanal feita com carinho.',
-            imagem: null,
-            avaliacao: 4.8,
-            totalAvaliacoes: 127,
-            horarioFuncionamento: {
-                segunda: '8:00 - 18:00',
-                terca: '8:00 - 18:00',
-                quarta: '8:00 - 18:00',
-                quinta: '8:00 - 18:00',
-                sexta: '8:00 - 18:00',
-                sabado: '8:00 - 16:00',
-                domingo: 'Fechado'
-            }
-        };
-    });
+    const [dadosLoja, setDadosLoja] = useState(getInitialDadosLoja);
+
+    useEffect(() => {
+        const handleStorageUpdate = () => setDadosLoja(getInitialDadosLoja());
+        window.addEventListener('localStorageUpdate', handleStorageUpdate);
+        return () => window.removeEventListener('localStorageUpdate', handleStorageUpdate);
+    }, []);
 
     const atualizarDadosLoja = (novosDados) => {
         setDadosLoja(prev => {

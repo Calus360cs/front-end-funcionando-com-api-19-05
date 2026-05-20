@@ -1,8 +1,8 @@
 import React from 'react';
 import Styles from '../paginas/ApresentacaoProjeto.module.css' // Importa o arquivo CSS
-import facebook from '../assests/img/facebook_icon.png';
+import facebook from '../assests/img/facebook_icon.png'; 
 import twitter from '../assests/img/twitter_icon.png';
-import instagram from '../assests/img/instragam_icon.jpg';
+import instagram from '../assests/img/instragam_icon.jpg'; // Note: mantido o nome do arquivo com typo 'instragam' conforme o disco
 
 const PROJETO_DADOS = {
     titulo: "DoceLivery",

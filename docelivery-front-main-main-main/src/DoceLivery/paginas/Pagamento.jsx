@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { IoArrowBack, IoCardOutline, IoWallet } from 'react-icons/io5';
 import { useCartStore } from '../context/CartContext';
 import { useDashboard } from '../context/DashboardContext';
+import OrderService from '../services/orderService';
+import AuthService from '../services/authService';
 import Styles from './Pagamento.module.css';
 
 const Pagamento = () => {
-    const { clearCart, finalizarPedido } = useCartStore();
+    const { clearCart } = useCartStore();
     const { adicionarVenda } = useDashboard();
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -63,44 +65,51 @@ const Pagamento = () => {
         }
 
         setIsProcessing(true);
-        
-        setTimeout(() => {
-            const pedidoFinalizado = finalizarPedido((valorVenda) => {
-                adicionarVenda(valorVenda);
-            });
-            if (pedidoFinalizado) {
-                // Salvar dados do pedido para o tracking
-                const orderData = {
-                    id: Date.now().toString(),
-                    storeName: activeStore?.name || 'Loja',
-                    items: cartItems.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        quantity: item.quantity,
-                        price: item.price,
-                        imageUrl: item.imageUrl || item.image
-                    })),
-                    total: finalTotal,
-                    paymentMethod,
-                    orderTime: new Date().toISOString(),
-                    status: 'pendente',
-                    customerName: localStorage.getItem('nomeCliente') || 'Cliente'
-                };
-                localStorage.setItem('currentOrder', JSON.stringify(orderData));
-                
-                // Salvar pedido para o confeiteiro
-                const existingOrders = JSON.parse(localStorage.getItem('confeiteiroPedidos') || '[]');
-                existingOrders.push(orderData);
-                localStorage.setItem('confeiteiroPedidos', JSON.stringify(existingOrders));
-                
-                clearCart();
-                alert('Pagamento realizado com sucesso!');
-                window.location.href = '/docelivery/cliente/pedido-status';
-            } else {
-                alert('Erro ao finalizar pedido.');
-            }
+
+        try {
+            const usuarioLogado = AuthService.getCurrentUser();
+
+            const novoPedido = {
+                cliente: { id: usuarioLogado?.id },
+                confeiteiro: { id: activeStore?.id },
+                valorPedido: finalTotal,
+                formaPagamento: paymentMethod.toUpperCase(),
+                itens: cartItems.map(item => ({
+                    produto: { id: item.id },
+                    quantidade: item.quantity
+                }))
+            };
+
+            const pedidoCriado = await OrderService.createOrder(novoPedido);
+
+            const orderData = {
+                id: pedidoCriado?.id || Date.now().toString(),
+                storeName: activeStore?.name || 'Loja',
+                items: cartItems.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    imageUrl: item.imageUrl || item.image
+                })),
+                total: finalTotal,
+                paymentMethod,
+                orderTime: new Date().toISOString(),
+                status: 'PENDENTE',
+                customerName: usuarioLogado?.nome || localStorage.getItem('nomeCliente') || 'Cliente'
+            };
+
+            localStorage.setItem('currentOrder', JSON.stringify(orderData));
+            adicionarVenda(finalTotal);
+            clearCart();
+            alert('Pedido realizado com sucesso!');
+            window.location.href = '/docelivery/cliente/pedido-status';
+        } catch (error) {
+            console.error('Erro ao realizar pedido:', error);
+            alert('Erro ao realizar pedido. Tente novamente.');
+        } finally {
             setIsProcessing(false);
-        }, 2000);
+        }
     };
 
     return (

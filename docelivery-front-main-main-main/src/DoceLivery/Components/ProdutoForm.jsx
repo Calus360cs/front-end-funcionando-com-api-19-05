@@ -13,9 +13,14 @@ const [dados, setDados] = useState({
 });
 
 const [arquivo, setArquivo] = useState(null);
+const [preview, setPreview] = useState(produto?.imagemUrl ? `http://localhost:8080/uploads/${produto.imagemUrl}` : null);
 
 const handleFileChange = (e) => {
-    setArquivo(e.target.files[0]); // Captura o arquivo físico
+    const file = e.target.files[0];
+    if (file) {
+        setArquivo(file);
+        setPreview(URL.createObjectURL(file)); // Cria URL temporária para o preview
+    }
 };
 
 const handleChange = (e) => {
@@ -82,14 +87,34 @@ return (
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-            <label>Foto do Doce (Real):</label>
-            <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '5px' }}
-            />
-            {arquivo && <p style={{ fontSize: '0.8rem', color: '#666' }}>Selecionado: {arquivo.name}</p>}
+            <label style={{ display: 'block', marginBottom: '8px' }}>Foto do Doce:</label>
+            <div 
+                onClick={() => document.getElementById('input-foto').click()}
+                style={{
+                    width: '100%',
+                    height: '150px',
+                    border: '2px dashed #ff69b4',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: '#fff0f5',
+                    overflow: 'hidden'
+                }}
+            >
+                {preview ? (
+                    <img src={preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    <div style={{ color: '#ff69b4', textAlign: 'center' }}>
+                        <span style={{ fontSize: '1.5rem' }}>+</span>
+                        <p style={{ margin: 0, fontSize: '0.9rem' }}>Selecionar Imagem</p>
+                    </div>
+                )}
+            </div>
+            <input id="input-foto" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+            {arquivo && <p style={{ fontSize: '0.75rem', color: '#28a745', marginTop: '5px' }}>✓ {arquivo.name}</p>}
         </div>
 
         <div style={{ marginBottom: '15px' }}>

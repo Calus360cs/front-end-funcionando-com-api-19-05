@@ -26,7 +26,8 @@ const LoginEntregador = () => {
         setErro('Acesso negado. Use o login correto para o seu perfil.');
         return;
       }
-      navigate('/docelivery/entregador/entregador-dashboard');
+      // Alterado para bater com a rota definida no App.jsx
+      navigate('/docelivery/entregador/home');
     } catch {
       setErro('E-mail ou senha incorretos.');
     } finally {

@@ -43,6 +43,11 @@ user: {
         { id: 103, name: "Cupcakes", icon: "🧁" },
         { id: 104, name: "Tortas", icon: "🥧" },
         { id: 106, name: "Brigadeiros", icon: "🍫" },
+        { id: 107, name: "Brownies", icon: "🍪" },
+        { id: 108, name: "Pães de Mel", icon: "🍯" },
+        { id: 109, name: "Salgados", icon: "🥟" },
+        { id: 110, name: "Bebidas", icon: "🥤" },
+        { id: 111, name: "Sobremesas", icon: "🍮" },
     ],
 
     // ----------------------------------------------------

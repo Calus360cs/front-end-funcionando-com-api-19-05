@@ -1,11 +1,12 @@
 // src/components/Header.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Styles from '../Components/Header.module.css';
 import doceLivre from '../assests/img/doce_Livre_3.jpg';
 import icon from '../assests/img/menu_white_36dp.svg';
 import Home from '../paginas/Home';
 import Lojas from '../paginas/Lojas';
 import Footer from './Footer';
+import AuthService from '../services/authService';
 // Importar imagens das páginas antigas
 import meninaEntregadora from '../assests/img/menina_entregadora1.png';
 import avatar from '../assests/img/avatar.png';
@@ -17,9 +18,42 @@ import entregador2 from '../assests/img/entregador_2.png';
 
 function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isAuth, setIsAuth] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [userType, setUserType] = useState('');
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
+    };
+
+    useEffect(() => {
+        const checkAuth = () => {
+            setIsAuth(AuthService.isAuthenticated());
+            setUserName(AuthService.getUserName() || '');
+            setUserType(AuthService.getUserType() || '');
+        };
+
+        checkAuth();
+        window.addEventListener('localStorageUpdate', checkAuth);
+        return () => window.removeEventListener('localStorageUpdate', checkAuth);
+    }, []);
+
+    const handleLogout = () => {
+        AuthService.logout();
+    };
+
+    const painelLink = () => {
+        if (!isAuth) return '/docelivery/cliente/login-cliente';
+        switch ((userType || '').toLowerCase()) {
+            case 'confeiteiro':
+                return '/docelivery/confeiteiro/Confeiteiro-Dashboard';
+            case 'entregador':
+                return '/docelivery/entregador/pagina-entregador';
+            case 'admin':
+                return '/docelivery/admin/dashboard';
+            default:
+                return '/docelivery/cliente/Home-Page';
+        }
     };
 
     return (
@@ -50,9 +84,17 @@ function Header() {
                 </div>
 
                 <div className={Styles.login_button}>
-                    <button>
-                        <a href="/docelivery/cliente/login-cliente">Login</a>
-                    </button>
+                    {isAuth ? (
+                        <>
+                            <span style={{ marginRight: '10px' }}>Olá, {userName}</span>
+                            <a href={painelLink()} className={Styles.painelBtn}>Painel</a>
+                            <button onClick={handleLogout} style={{ marginLeft: '8px' }}>Sair</button>
+                        </>
+                    ) : (
+                        <button>
+                            <a href="/docelivery/cliente/login-cliente">Login</a>
+                        </button>
+                    )}
                 </div>
 
                 <div className={Styles.mobile_menu_icon}>
@@ -70,9 +112,17 @@ function Header() {
                     <li className={Styles.nav_item}><a href="/docelivery/entregador/pagina-entregador" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Entregador</a></li>
                 </ul>
                 <div className={Styles.login_button}>
-                    <button>
-                        <a href="/docelivery/cliente/login-cliente">Login</a>
-                    </button>
+                    {isAuth ? (
+                        <>
+                            <span style={{ marginRight: '10px' }}>Olá, {userName}</span>
+                            <a href={painelLink()} className={Styles.painelBtn}>Painel</a>
+                            <button onClick={handleLogout} style={{ marginLeft: '8px' }}>Sair</button>
+                        </>
+                    ) : (
+                        <button>
+                            <a href="/docelivery/cliente/login-cliente">Login</a>
+                        </button>
+                    )}
                 </div>
             </div>
         </header>

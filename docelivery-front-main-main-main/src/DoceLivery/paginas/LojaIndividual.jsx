@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CardapioPublico from '../Components/CardapioPublico';
-import { useLoja } from '../context/LojaContext';
+import ConfeiteiroService from '../services/confeiteiroService';
 import { IoArrowBack, IoStar, IoLocation, IoTime, IoCall, IoCalendarOutline } from 'react-icons/io5';
 import Styles from './LojaIndividual.module.css';
+import { IMAGE_MAP } from '../data/imageImports';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
 const LojaIndividual = () => {
     const { lojaId } = useParams();
     const navigate = useNavigate();
-    const { dadosLoja } = useLoja();
     const [loja, setLoja] = useState(null);
     const [showEncomendaModal, setShowEncomendaModal] = useState(false);
     const [encomendaData, setEncomendaData] = useState({
@@ -19,37 +22,60 @@ const LojaIndividual = () => {
     });
 
     useEffect(() => {
-        // Tentar carregar dados da loja do localStorage primeiro
-        const selectedStore = localStorage.getItem('selectedStore');
-        if (selectedStore) {
-            const storeData = JSON.parse(selectedStore);
-            setLoja({
-                ...storeData,
-                // Dados padrão se não existirem
-                endereco: storeData.address || 'Endereço não informado',
-                telefone: storeData.phone || '(11) 99999-9999',
-                descricao: storeData.description || 'Confeitaria especializada em doces artesanais',
-                avaliacao: storeData.rating || '4.8',
-                totalAvaliacoes: storeData.reviews || '150',
-                horarioFuncionamento: storeData.hours || {
-                    segunda: '08:00 - 18:00',
-                    terca: '08:00 - 18:00',
-                    quarta: '08:00 - 18:00',
-                    quinta: '08:00 - 18:00',
-                    sexta: '08:00 - 18:00',
-                    sabado: '08:00 - 16:00',
-                    domingo: 'Fechado'
-                },
-                imagem: storeData.logoUrl || storeData.image
-            });
-        } else {
-            // Fallback para dados do contexto
-            setLoja({
-                ...dadosLoja,
-                id: parseInt(lojaId) || dadosLoja.id
-            });
-        }
-    }, [lojaId, dadosLoja]);
+        const carregarLoja = async () => {
+            try {
+                const response = await ConfeiteiroService.getConfeiteiro(lojaId);
+                const dados = response.data || response;
+                
+                const lojaInfo = dados.loja || dados;
+                const rawImagem = lojaInfo.imagem || lojaInfo.imagemUrl || lojaInfo.logoUrl;
+
+                setLoja({
+                    id: lojaId,
+                    nome: lojaInfo.nomeFantasia || lojaInfo.nome || 'Confeitaria',
+                    telefone: lojaInfo.telefone || dados.telefone || '',
+                    endereco: lojaInfo.endereco || (lojaInfo.logradouro ? `${lojaInfo.logradouro}, ${lojaInfo.numero}` : ''),
+                    descricao: lojaInfo.descricao || '',
+                    avaliacao: dados.avaliacao || '5.0',
+                    totalAvaliacoes: dados.totalAvaliacoes || '0',
+                    imagem: rawImagem 
+                        ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:') 
+                            ? rawImagem 
+                            : `${IMAGE_URL}/${rawImagem}`)
+                        : IMAGE_MAP['brigadeiro'],
+                    horarioFuncionamento: lojaInfo.horarioFuncionamento || {
+                        segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
+                        quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
+                        sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
+                        domingo: 'Fechado'
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao carregar loja:', error);
+                const stored = localStorage.getItem('selectedStore');
+                const storedData = stored ? JSON.parse(stored) : null;
+                if (storedData) {
+                    setLoja({
+                        id: lojaId,
+                        nome: storedData.nomeFantasia || storedData.nomeLoja || 'Confeitaria',
+                        telefone: storedData.telefone || storedData.phone || '',
+                        endereco: storedData.endereco || storedData.address || '',
+                        descricao: storedData.descricao || storedData.description || '',
+                        avaliacao: storedData.rating || storedData.avaliacao || '5.0',
+                        totalAvaliacoes: storedData.reviews || '0',
+                        imagem: storedData.logoUrl || null,
+                        horarioFuncionamento: storedData.horarioFuncionamento || storedData.hours || {
+                            segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
+                            quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
+                            sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
+                            domingo: 'Fechado'
+                        }
+                    });
+                }
+            }
+        };
+        if (lojaId) carregarLoja();
+    }, [lojaId]);
 
     const handleVoltar = () => {
         navigate('/docelivery/cliente/Home-Page');
@@ -78,7 +104,11 @@ const LojaIndividual = () => {
 
             <div className={Styles.lojaHeader}>
                 <div className={Styles.lojaImagem}>
-                    <img src={loja.imagem} alt={loja.nome} />
+                    <img 
+                        src={loja.imagem} 
+                        alt={loja.nome}
+                        onError={(e) => e.target.src = IMAGE_MAP['brigadeiro']}
+                    />
                 </div>
                 <div className={Styles.lojaInfo}>
                     <h2>{loja.nome}</h2>
@@ -132,7 +162,7 @@ const LojaIndividual = () => {
             {showEncomendaModal && (
                 <div className={Styles.modalOverlay} onClick={() => setShowEncomendaModal(false)}>
                     <div className={Styles.encomendaModal} onClick={(e) => e.stopPropagation()}>
-                        <h3>Fazer Encomenda - {loja.nome || loja.name}</h3>
+                        <h3>Fazer Encomenda - {loja.nome}</h3>
                         <form onSubmit={handleEncomendaSubmit}>
                             <div className={Styles.formGroup}>
                                 <label>Produto/Tipo de Doce:</label>

@@ -17,9 +17,9 @@ const LoginCliente = () => {
     setLoading(true);
     
     try {
-      await AuthService.loginCliente(email, senha);
+      await AuthService.loginCliente({ email, senha });
       // Redireciona para o dashboard ou home do cliente
-      navigate('/docelivery/cliente/home'); 
+      navigate('/docelivery/cliente/Home-Page'); 
     } catch (err) {
       setMensagemErro("Usuário ou senha inválidos. Tente novamente.");
     } finally {

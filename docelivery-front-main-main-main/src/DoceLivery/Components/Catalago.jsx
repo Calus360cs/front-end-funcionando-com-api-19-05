@@ -95,7 +95,7 @@ const Catalogo = () => {
           {produtos.map(produto => (
             <tr key={produto.id} style={{ borderBottom: '1px solid #eee' }}>
               <td style={{ padding: '10px' }}>{produto.nome}</td>
-              <td style={{ padding: '10px' }}>R$ {produto.preco.toFixed(2)}</td>
+              <td style={{ padding: '10px' }}>R$ {(produto.preco ?? 0).toFixed(2)}</td>
               <td style={{ padding: '10px', color: produto.status === 'Disponível' ? 'green' : 'red' }}>{produto.status}</td>
               <td style={{ padding: '10px' }}>
                 {/* Ações de Edição/Exclusão simuladas */}

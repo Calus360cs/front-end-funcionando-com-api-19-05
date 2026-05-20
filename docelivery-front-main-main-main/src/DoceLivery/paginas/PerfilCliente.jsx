@@ -64,19 +64,9 @@ const PerfilCliente = () => {
         restricoesAlimentares: preferenciasSalvas?.restricoesAlimentares || prev.restricoesAlimentares,
       }));
 
-      // 2. Busca dados frescos no Backend
-      if (id) {
-        try {
-          const data = await ApiService.get(`/buscar/${id}`);
-          setProfileData(prev => ({
-            ...prev,
-            ...data,
-            estado: data.uf || data.estado || prev.estado,
-          }));
-        } catch (error) {
-          console.warn('Usando dados locais, erro ao conectar com servidor:', error);
-        }
-      }
+      // 2. Busca dados frescos no Backend (Removido - Usar dados locais do login)
+      // Se precisar buscar dados do servidor, verificar se a rota /api/user/profile existe no backend
+      // Por enquanto, usando dados do localStorage que já foram preenchidos durante o login
       setLoadingDados(false);
     };
 

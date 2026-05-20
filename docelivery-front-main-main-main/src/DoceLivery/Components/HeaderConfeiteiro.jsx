@@ -1,15 +1,55 @@
 // src/Confeiteiro/components/Header.jsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const HeaderConfeiteiro = ({ nomeLoja }) => {
-  // Dados simulados para o canto superior (ex: Confeiteiro logado e notificações)
-const usuarioLogado = {
-    nome: 'Maria Silva',
-    notificacoes: 2 // Por exemplo, 2 novos pedidos
-};
+  const [usuarioLogado, setUsuarioLogado] = useState({
+    nome: 'Confeiteiro',
+    notificacoes: 0
+  });
 
-return (
+  useEffect(() => {
+    const fetchUsuarioLogado = async () => {
+      const rawUser = localStorage.getItem('user') || localStorage.getItem('dadosUsuario') || localStorage.getItem('dadosConfeiteiro');
+      if (!rawUser) return;
+
+      try {
+        const usuario = JSON.parse(rawUser);
+        const email = usuario.email || usuario.userEmail || usuario.emailUsuario || localStorage.getItem('userEmail');
+        const authToken = localStorage.getItem('userToken') || localStorage.getItem('token');
+        if (!email) return;
+
+        const resposta = await axios.get(
+          `http://localhost:8080/api/confeiteiro/profile?email=${encodeURIComponent(email)}`,
+          {
+            headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+          }
+        );
+        const perfil = resposta.data || resposta;
+
+        setUsuarioLogado({
+          nome: perfil.nome || perfil.nomeConfeiteiro || usuario.nome || usuario.userName || 'Confeiteiro',
+          notificacoes: perfil.notificacoes ?? 0
+        });
+      } catch (error) {
+        console.error('Erro ao carregar perfil do usuário:', error);
+        try {
+          const usuario = JSON.parse(rawUser);
+          setUsuarioLogado(prev => ({
+            ...prev,
+            nome: usuario.nome || usuario.userName || prev.nome
+          }));
+        } catch {
+          // Ignorar erro de parse secundário
+        }
+      }
+    };
+
+    fetchUsuarioLogado();
+  }, []);
+
+  return (
     <header style={{
     padding: '20px 30px',
     backgroundColor: '#fff',

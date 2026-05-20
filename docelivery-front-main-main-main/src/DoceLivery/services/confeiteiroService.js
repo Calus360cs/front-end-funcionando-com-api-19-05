@@ -1,63 +1,60 @@
 import ApiService from './api';
-import authService from './authService';
+import AuthService from './authService';
 
 class ConfeiteiroService {
   // Obter todas as confeiteiras
-  async getConfeiteiros() {
-    return await ApiService.get('/confeiteiras');
+  async getConfeiteiro() {
+    return await ApiService.get('/confeiteiro');
   }
 
   // Obter uma confeiteira específica pelo ID
   async getConfeiteiro(id) {
-    return await ApiService.get(`/confeiteiras/${id}`);
+    return await ApiService.get(`/confeiteiro/${id}`);
   }
 
   // Criar uma nova confeiteira
   async createConfeiteiro(dadosConfeiteiro) {
-    return await ApiService.post('/confeiteiras', dadosConfeiteiro);
+    return await ApiService.post('/confeiteiro', dadosConfeiteiro);
   }
 
   // Atualizar uma confeiteira existente
   async updateConfeiteiro(id, dadosConfeiteiro) {
-    return await ApiService.put(`/confeiteiras/${id}`, dadosConfeiteiro);
+    return await ApiService.put(`/confeiteiro/${id}`, dadosConfeiteiro);
   }
 
   // Atualizar perfil do confeiteiro logado
   async atualizarPerfil(dados) {
-    let id = authService.getUserId();
-
-    // Fallback: tenta extrair o ID do token JWT
-    if (!id) {
-      const token = localStorage.getItem('userToken');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('Payload do token JWT:', payload);
-          id = payload.id || payload.sub || payload.idConfeiteiro || payload.idUsuario || payload.userId;
-          if (id) localStorage.setItem('userId', id);
-        } catch (e) {
-          console.error('Erro ao decodificar token:', e);
-        }
-      }
-    }
+    const id = AuthService.getUserId();
 
     if (!id) throw new Error('Usuário não autenticado.');
 
     const payload = {
-      nomeLoja: dados.nome,
-      telefone: dados.telefone,
-      cep: dados.cep,
-      endereco: `${dados.logradouro}, ${dados.numero}`,
-      bairro: dados.bairro,
-      cidade: dados.cidade,
-      uf: dados.estado,
-      cnpj: dados.cnpj,
+      id,
+      nome: dados.nome,
+      email: dados.email,
+      loja: {
+        nomeFantasia: dados.nome,
+        descricao: dados.descricao,
+        cnpj: dados.cnpj,
+        telefone: dados.telefone,
+        endereco: `${dados.logradouro}, ${dados.numero}`,
+        bairro: dados.bairro,
+        cidade: dados.cidade,
+        uf: dados.estado,
+        cep: dados.cep,
+      }
     };
 
     console.log('ID que estou enviando:', id);
     console.log('Dados que estou enviando:', payload);
 
-    const response = await ApiService.put(`/confeiteiro/atualizar/${id}`, payload);
+    const formData = new FormData();
+    formData.append('dados', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    if (dados.imagem && dados.imagem instanceof File) {
+      formData.append('imagem', dados.imagem);
+    }
+
+    const response = await ApiService.put(`/confeiteiro/atualizar/${id}`, formData);
 
     // Atualiza localStorage com os novos dados
     if (dados.nome) localStorage.setItem('nomeLoja', dados.nome);
@@ -69,17 +66,36 @@ class ConfeiteiroService {
     if (dados.cidade) localStorage.setItem('userCidade', dados.cidade);
     if (dados.estado) localStorage.setItem('userUf', dados.estado);
 
+    const updatedDadosConfeiteiro = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+    const updatedLoja = {
+      ...(updatedDadosConfeiteiro.loja || {}),
+      nomeFantasia: dados.nome,
+      descricao: dados.descricao,
+      cnpj: dados.cnpj,
+      telefone: dados.telefone,
+      endereco: `${dados.logradouro}, ${dados.numero}`,
+      bairro: dados.bairro,
+      cidade: dados.cidade,
+      uf: dados.estado,
+      cep: dados.cep,
+    };
+    localStorage.setItem('dadosConfeiteiro', JSON.stringify({ ...updatedDadosConfeiteiro, loja: updatedLoja }));
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('localStorageUpdate'));
+    }
+
     return response;
   }
 
   // Deletar uma confeiteira
   async deleteConfeiteiro(id) {
-    return await ApiService.delete(`/confeiteiras/${id}`);
+    return await ApiService.delete(`/confeiteiro/${id}`);
   }
 
   // Obter pedidos atribuídos a uma confeiteira
   async getPedidosAtribuidos(id) {
-    return await ApiService.get(`/confeiteiras/${id}/pedidos`);
+    return await ApiService.get(`/confeiteiro/${id}/pedidos`);
   }
 }
 

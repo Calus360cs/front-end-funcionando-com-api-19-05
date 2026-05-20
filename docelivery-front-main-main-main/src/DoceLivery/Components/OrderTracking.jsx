@@ -91,13 +91,13 @@ const OrderTracking = ({ order, onRatingSubmit }) => {
               <span className={Styles.item_quantity}>Qtd: {item.quantity}</span>
             </div>
             <span className={Styles.item_price}>
-              R$ {(item.price * item.quantity).toFixed(2)}
+              R$ {((item.price ?? 0) * (item.quantity ?? 0)).toFixed(2)}
             </span>
           </div>
         ))}
         
         <div className={Styles.order_total}>
-          <strong>Total: R$ {order.total.toFixed(2)}</strong>
+          <strong>Total: R$ {(order.total ?? 0).toFixed(2)}</strong>
         </div>
       </div>
 

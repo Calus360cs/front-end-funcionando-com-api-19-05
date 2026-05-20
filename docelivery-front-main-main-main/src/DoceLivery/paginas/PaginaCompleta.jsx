@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Style from './PaginaCompleta.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faStar, faArrowRight, faShoppingBag, faTruck, faUsers, faBars, faTimes, faPhone } from '@fortawesome/free-solid-svg-icons';
@@ -122,14 +123,14 @@ function PaginaCompleta() {
                   <div className={Style.cardImage}>
                     <img 
                       src={loja.imagem || '/placeholder-image.jpg'} 
-                      alt={loja.nome}
+                      alt={loja.nomeFantasia || loja.nome || loja.name}
                       onError={(e) => {
                         e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbTwvdGV4dD48L3N2Zz4=';
                       }}
                     />
                   </div>
                   <div className={Style.cardContent}>
-                    <h3>{loja.nome}</h3>
+                    <h3>{loja.nomeFantasia || loja.nome || loja.name}</h3>
                     <div className={Style.cardRating}>
                       <span>4.8</span>
                       <span>⭐</span>
@@ -160,12 +161,10 @@ function PaginaCompleta() {
                 <p>Conectamos você aos melhores confeiteiros da sua região. Sabor artesanal, qualidade garantida e entrega rápida direto na sua porta.</p>
                 
                 <div className={Style.heroActions}>
-                  <button className={Style.primaryBtn}>
-                    <a href="/docelivery/cliente/Home-Page" target="_blank" rel="noopener noreferrer">
+                  <Link to="/docelivery/cliente/home-page" className={Style.primaryBtn} target="_blank" rel="noopener noreferrer">
                       <FontAwesomeIcon icon={faShoppingBag} />
                       Explorar Lojas
-                    </a>
-                  </button>
+                  </Link>
                 </div>
               </div>
               
@@ -335,9 +334,9 @@ function PaginaCompleta() {
                   </div>
                 </div>
                 
-                <a href="/docelivery/entregador/cadastro-entregador" target="_blank" rel="noopener noreferrer" className={Style.parceiroBtnModerno}>
+                <a href="/docelivery/entregador/login-entregador" target="_blank" rel="noopener noreferrer" className={Style.parceiroBtnModerno}>
                   <FontAwesomeIcon icon={faArrowRight} />
-                  Quero Ser Entregador
+                  Entrar no Painel
                 </a>
               </div>
             </div>

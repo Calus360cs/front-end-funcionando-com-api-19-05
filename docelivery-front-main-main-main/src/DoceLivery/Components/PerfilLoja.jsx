@@ -10,7 +10,7 @@ import confeiteiroService from '../services/confeiteiroService';
 const PerfilLoja = ({ onUserDataUpdate }) => {
     const { dadosLoja, atualizarDadosLoja, atualizarHorarioFuncionamento } = useLoja();
     const [formData, setFormData] = useState({
-        nome: dadosLoja.nome || '',
+        nome: dadosLoja.nomeFantasia || dadosLoja.nome || '',
         email: dadosLoja.email || localStorage.getItem('userEmail') || '',
         telefone: dadosLoja.telefone || localStorage.getItem('userTelefone') || '',
         cnpj: dadosLoja.cnpj || localStorage.getItem('userCnpj') || '',
@@ -28,27 +28,34 @@ const PerfilLoja = ({ onUserDataUpdate }) => {
     const [cepLoading, setCepLoading] = useState(false);
 
     useEffect(() => {
-        const usuarioString = localStorage.getItem('dadosConfeiteiro');
-        if (usuarioString) {
-            const usuario = JSON.parse(usuarioString);
-            console.log('Usuário recuperado:', usuario);
-            setFormData(prev => ({
-                ...prev,
-                nome: usuario.nomeLoja || usuario.nomeConfeitaria || prev.nome,
-                telefone: usuario.telefone || prev.telefone,
-                cnpj: usuario.cnpj || prev.cnpj,
-                cep: usuario.cep || prev.cep,
-                logradouro: usuario.logradouro || prev.logradouro,
-                numero: usuario.numero || prev.numero,
-                complemento: usuario.complemento || prev.complemento,
-                bairro: usuario.bairro || prev.bairro,
-                cidade: usuario.cidade || prev.cidade,
-                estado: usuario.estado || usuario.uf || prev.estado,
-                email: usuario.email || prev.email,
-            }));
-        } else {
-            console.warn('Nenhum dado de confeiteiro encontrado no localStorage');
-        }
+        const carregarPerfilAPI = async () => {
+            const id = localStorage.getItem('userId');
+            if (!id) return;
+
+            try {
+                const usuario = await confeiteiroService.getConfeiteiro(id);
+                if (usuario) {
+                    setFormData({
+                        nome: usuario.loja?.nomeFantasia || usuario.nomeLoja || usuario.nomeConfeitaria || usuario.nome || '',
+                        email: usuario.email || '',
+                        telefone: usuario.loja?.telefone || usuario.telefone || '',
+                        cnpj: usuario.loja?.cnpj || usuario.cnpj || '',
+                        cep: usuario.loja?.cep || usuario.cep || '',
+                        logradouro: usuario.loja?.endereco?.split(',')[0] || usuario.logradouro || '',
+                        numero: usuario.loja?.endereco?.split(',')[1]?.trim() || '',
+                        complemento: usuario.complemento || '',
+                        bairro: usuario.loja?.bairro || usuario.bairro || '',
+                        cidade: usuario.loja?.cidade || usuario.cidade || '',
+                        estado: usuario.loja?.uf || usuario.loja?.estado || usuario.uf || usuario.estado || '',
+                        descricao: usuario.loja?.descricao || usuario.descricao || '',
+                        imagem: usuario.loja?.imagem || usuario.imagemUrl || usuario.imagem || '',
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao carregar perfil da API, usando local:", error);
+            }
+        };
+        carregarPerfilAPI();
     }, []);
 
     const applyMask = (name, value) => {
@@ -108,12 +115,54 @@ const PerfilLoja = ({ onUserDataUpdate }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await confeiteiroService.atualizarPerfil(formData);
-            atualizarDadosLoja({ ...formData });
+            const dadosParaEnviar = {
+                id: localStorage.getItem('userId'),
+                nome: formData.nome,
+                email: formData.email,
+                loja: {
+                    nomeFantasia: formData.nome,
+                    descricao: formData.descricao,
+                    cnpj: formData.cnpj,
+                    telefone: formData.telefone,
+                    endereco: `${formData.logradouro}, ${formData.numero}`,
+                    bairro: formData.bairro,
+                    cidade: formData.cidade,
+                    uf: formData.estado,
+                    cep: formData.cep,
+                }
+            };
+
+            const atualizacao = await confeiteiroService.atualizarPerfil(dadosParaEnviar);
+            const lojaAtualizada = {
+                ...dadosParaEnviar.loja,
+                nomeFantasia: dadosParaEnviar.loja.nomeFantasia,
+            };
+
+            atualizarDadosLoja({
+                nome: lojaAtualizada.nomeFantasia,
+                descricao: lojaAtualizada.descricao,
+                cnpj: lojaAtualizada.cnpj,
+                telefone: lojaAtualizada.telefone,
+                endereco: lojaAtualizada.endereco,
+                bairro: lojaAtualizada.bairro,
+                cidade: lojaAtualizada.cidade,
+                estado: lojaAtualizada.uf,
+                cep: lojaAtualizada.cep,
+                imagem: formData.imagem || dadosParaEnviar.loja.imagem || ''
+            });
             atualizarHorarioFuncionamento(horarios);
+            localStorage.setItem('nomeLoja', formData.nome);
+            localStorage.setItem('userEmail', formData.email);
+            localStorage.setItem('userTelefone', formData.telefone);
+            localStorage.setItem('userCnpj', formData.cnpj);
+            localStorage.setItem('userCep', formData.cep);
+            localStorage.setItem('userBairro', formData.bairro);
+            localStorage.setItem('userCidade', formData.cidade);
+            localStorage.setItem('userUf', formData.estado);
             if (onUserDataUpdate) {
-                onUserDataUpdate({ nome: localStorage.getItem('userName') || formData.nome, loja: formData.nome });
+                onUserDataUpdate({ nome: formData.nome, loja: formData.nome });
             }
+            window.dispatchEvent(new Event('localStorageUpdate'));
             alert('Perfil da loja atualizado com sucesso!');
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);

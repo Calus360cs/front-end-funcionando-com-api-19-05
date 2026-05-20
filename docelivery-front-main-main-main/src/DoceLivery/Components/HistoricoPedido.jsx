@@ -36,7 +36,7 @@ const HistoricoPedido = ({ pedido, onClose }) => {
         data: '2024-01-10 14:30',
         status: 'concluido',
         icone: <IoCheckmarkCircle size={20} />,
-        detalhes: `Cliente: ${pedido.cliente}\nProduto: ${pedido.produto}\nValor: R$ ${pedido.valor.toFixed(2)}`
+        detalhes: `Cliente: ${pedido.cliente}\nProduto: ${pedido.produto}\nValor: R$ ${(pedido.valor ?? 0).toFixed(2)}`
       },
       {
         id: 2,
@@ -213,7 +213,7 @@ const HistoricoPedido = ({ pedido, onClose }) => {
             </div>
             <div className={Styles.infoItem}>
               <strong>Valor Total:</strong>
-              <span>R$ {pedido.valor.toFixed(2)}</span>
+              <span>R$ {(pedido.valor ?? 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -26,7 +26,39 @@ const DashboardHome = ({ editMode }) => {
     const { storeData, updateStoreData } = useStore();
     const { dashboardData, getVendasSemanais, adicionarVenda } = useDashboard();
     const [editingField, setEditingField] = useState(null);
-    
+    const [displayStoreData, setDisplayStoreData] = useState(() => {
+        const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        return {
+            ...storeData,
+            nomeConfeiteiro: savedUser.nome || 'Confeiteiro',
+            name: savedUser.nomeLoja || 'Minha Confeitaria',
+            description: savedUser.loja?.descricao || storeData.description,
+            email: savedUser.email || '',
+            phone: savedUser.telefone || '',
+            address: savedUser.loja?.endereco || ''
+        };
+    });
+
+    // Atualiza displayStoreData quando storeData ou localStorage mudar (ex.: login/logout)
+    React.useEffect(() => {
+        const recompute = () => {
+            const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            setDisplayStoreData({
+                ...storeData,
+                nomeConfeiteiro: savedUser.nome || 'Confeiteiro',
+                name: savedUser.nomeLoja || 'Minha Confeitaria',
+                description: savedUser.loja?.descricao || storeData.description,
+                email: savedUser.email || '',
+                phone: savedUser.telefone || '',
+                address: savedUser.loja?.endereco || ''
+            });
+        };
+
+        recompute();
+        window.addEventListener('localStorageUpdate', recompute);
+        return () => window.removeEventListener('localStorageUpdate', recompute);
+    }, [storeData]);
+
     const handleEdit = (field, value) => {
         updateStoreData({ [field]: value });
         setEditingField(null);
@@ -75,24 +107,25 @@ const DashboardHome = ({ editMode }) => {
     return (
         <div className={Styles.dashboardHome}>
             <div className={Styles.welcomeSection}>
-                <h2>Bem-vindo, {storeData.nomeConfeiteiro}!</h2>
+                <h1>Bem-vindo de volta, {displayStoreData.nomeConfeiteiro}!</h1>
+                <p>Gerencie seus kits, produtos e pedidos da loja <strong>{displayStoreData.name || "não identificada"}</strong>.</p>
                 <div className={Styles.storeInfo}>
                     <h3>
                         <EditableField 
                             field="name" 
-                            value={storeData.name}
+                            value={displayStoreData.name}
                             className={Styles.storeName}
                         />
                     </h3>
-                    {storeData.email && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📧 {storeData.email}</p>}
-                    {storeData.phone && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📞 {storeData.phone}</p>}
-                    {storeData.address && storeData.address !== 'Rua das Flores, 123 - Centro' && (
-                        <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {storeData.address}</p>
+                    {displayStoreData.email && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📧 {displayStoreData.email}</p>}
+                    {displayStoreData.phone && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📞 {displayStoreData.phone}</p>}
+                    {displayStoreData.address && displayStoreData.address !== 'Rua das Flores, 123 - Centro' && (
+                        <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {displayStoreData.address}</p>
                     )}
                     <p>
                         <EditableField 
                             field="description" 
-                            value={storeData.description}
+                            value={displayStoreData.description}
                             className={Styles.storeDescription}
                         />
                     </p>

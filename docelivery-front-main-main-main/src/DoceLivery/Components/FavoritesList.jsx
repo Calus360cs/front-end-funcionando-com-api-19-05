@@ -91,7 +91,7 @@ const FavoritesList = ({ isOpen, onClose }) => {
                                         <div className={Styles.item_info}>
                                             <h4>{product.name}</h4>
                                             <p>{product.store}</p>
-                                            <span className={Styles.price}>R$ {product.price.toFixed(2)}</span>
+                                            <span className={Styles.price}>R$ {(product.price ?? 0).toFixed(2)}</span>
                                         </div>
                                         <div className={Styles.item_actions}>
                                             <button 

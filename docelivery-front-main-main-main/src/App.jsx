@@ -21,6 +21,9 @@ import PerfilCliente from './DoceLivery/paginas/PerfilCliente';
 import OrderStatus from './DoceLivery/paginas/OrderStatus';
 import LoginAdmin from './DoceLivery/paginas/LoginAdmin';
 import AdminDashboard from './DoceLivery/paginas/AdminDashboard';
+import AdminChat from './DoceLivery/Components/AdminChat';
+import Agenda from './DoceLivery/Components/Agenda';
+import CalendarioEncomendas from './DoceLivery/Components/CalendarioEncomendas';
 
 // Importação dos Contextos
 import { CartProviderStore } from './DoceLivery/context/CartProviderStore';
@@ -39,14 +42,14 @@ function App() {
             <FavoritesProvider>
               <CartProviderStore>
                 <Routes>
-                  {/* Rota Raiz */}
-                  <Route path="/" element={<PaginaCompleta />} />
+                  {/* Rota Raiz - Conforme ORGANIZACAO_FINAL.md, o Header é o entry point principal */}
+                  <Route path="/" element={<PaginaCompleta />} /> 
 
-                  {/* AJUSTE AQUI: Alterado de Home-Page para apenas home para bater com o erro */}
-                  <Route path="/docelivery/cliente/home" element={<HomePage />} />
+                  <Route path="/docelivery/cliente/Home-Page" element={<HomePage />} />
                   
                   {/* Outras rotas permanecem iguais */}
                   <Route path="/docelivery/confeiteiro/Confeiteiro-Dashboard" element={<ConfeiteiroDashboard />} />
+                  {/* Corrigindo a rota do entregador para bater com a documentação */}
                   <Route path="/docelivery/entregador/pagina-entregador" element={<PaginaEntregador />} />
                   <Route path="/docelivery/confeiteiro/cadastro" element={<CadastroConfeiteiro />} />
                   <Route path="/docelivery/entregador/cadastro-entregador" element={<CadastroEntregador />} />
@@ -62,6 +65,11 @@ function App() {
                   <Route path="/docelivery/loja/:lojaId" element={<LojaIndividual />} />
                   <Route path="/docelivery/admin/login" element={<LoginAdmin />} />
                   <Route path="/docelivery/admin/dashboard" element={<AdminDashboard />} />
+                  
+                  {/* Novas Rotas Localizadas */}
+                  <Route path="/docelivery/admin/chat" element={<AdminChat />} />
+                  <Route path="/docelivery/confeiteiro/agenda" element={<Agenda />} />
+                  <Route path="/docelivery/confeiteiro/calendario" element={<CalendarioEncomendas />} />
 
                   {/* Rota de Erro 404 - Caso o usuário digite algo errado */}
                   <Route path="*" element={<div>Página não encontrada (404)</div>} />

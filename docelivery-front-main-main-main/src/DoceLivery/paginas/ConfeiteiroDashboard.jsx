@@ -4,6 +4,7 @@ import Styles from './ConfeiteiroDashboard.module.css';
 import { IoHome, IoReceipt, IoRestaurant, IoStatsChart, IoCalendar, IoSettings, IoLogOut, IoNotifications, IoAdd, IoCreate, IoMenu } from 'react-icons/io5';
 import { useStore } from '../context/StoreContext';
 import { useLoja } from '../context/LojaContext';
+import AuthService from '../services/authService';
 import PedidosPage from "../Components/PedidosPage";
 import CardapioManager from "../Components/CardapioManager";
 import DashboardHome from "../Components/DashboardHome";
@@ -17,7 +18,7 @@ const ConfeiteiroDashboard = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userData, setUserData] = useState({ nome: '', loja: '' });
+  const [userData, setUserData] = useState({ nome: '', loja: '', email: '', fotoLoja: '' });
   const [storeOpen, setStoreOpen] = useState(true);
   const [businessHours, setBusinessHours] = useState({
     monday: { open: '08:00', close: '18:00', isOpen: true },
@@ -34,12 +35,16 @@ const ConfeiteiroDashboard = () => {
   const navigate = useNavigate();
   
   const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('nomeConfeiteiro');
-    navigate('/');
+    // Garantir que nada do usuário anterior permaneça
+    try {
+      localStorage.clear();
+      // notificar contexts que o localStorage mudou
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('localStorageUpdate'));
+    } catch (e) {
+      console.warn('Erro limpando localStorage durante logout', e);
+    }
+    // navegar para cadastro de confeiteiro
+    navigate('/docelivery/confeiteiro/cadastro');
   };
   
   // Função para verificar se a loja está aberta baseado no horário
@@ -55,25 +60,46 @@ const ConfeiteiroDashboard = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('userToken');
-    const userType = localStorage.getItem('userType');
+    const token = localStorage.getItem('userToken') || localStorage.getItem('token');
     const userEmail = localStorage.getItem('userEmail');
-    
+    const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
     // Verificação mais flexível - aceita tanto 'confeiteiro' quanto login direto
     if (!token && !userEmail) {
       navigate('/docelivery/confeiteiro/login-confeiteiro');
       return;
     }
+
+    // Primeiro definimos o estado com o cache local já existente para evitar tela em branco
+    setUserData({ 
+      nome: savedUser.nome || 'Confeiteiro', 
+      loja: savedUser.nomeLoja || 'Minha Confeitaria',
+      email: savedUser.email || '',
+      fotoLoja: savedUser.fotoLoja || ''
+    });
+
+    const refreshProfile = async () => {
+      if (token && userEmail) {
+        try {
+          await AuthService.fetchAndSaveProfile(userEmail, token);
+          // Após buscar do banco, pegamos os dados atualizados e salvos pelo AuthService
+          const updatedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          
+          // ATUALIZAÇÃO CRÍTICA: Seta o estado novamente com os dados vindos da API
+          setUserData({ 
+            nome: updatedUser.nome || 'Confeiteiro', 
+            loja: updatedUser.nomeLoja || 'Minha Confeitaria',
+            email: updatedUser.email || '',
+            fotoLoja: updatedUser.fotoLoja || ''
+          });
+        } catch (error) {
+          console.warn('Não foi possível atualizar perfil do confeiteiro no dashboard:', error);
+        }
+      }
+    };
+
+    refreshProfile();
     
-    // Carregar dados do usuário
-    const nomeConfeiteiro = localStorage.getItem('userName') || 
-                           localStorage.getItem('nomeConfeiteiro') || 
-                           dadosLoja.nome ||
-                           'Confeiteiro';
-    const nomeLoja = dadosLoja.nome ||
-                     storeData.name || 
-                     localStorage.getItem('nomeLoja') || 
-                     'Minha Confeitaria';
     const savedBusinessHours = localStorage.getItem('businessHours');
     
     if (savedBusinessHours) {
@@ -83,9 +109,7 @@ const ConfeiteiroDashboard = () => {
         console.error('Erro ao carregar horários salvos:', error);
       }
     }
-    
-    setUserData({ nome: nomeConfeiteiro, loja: nomeLoja });
-  }, [navigate, storeData.name]);
+  }, [navigate]); // Mantido apenas navigate para evitar loops visuais baseados em strings de outros contextos
 
   // Verificar status da loja a cada minuto
   useEffect(() => {
@@ -276,7 +300,7 @@ const ConfeiteiroDashboard = () => {
           <img src={storeLogo} alt="Logo da loja" className={Styles.sidebarLogo} />
           <div className={Styles.sidebarBrand}>
             <h2>Docelivery</h2>
-            <span>{dadosLoja.nome || userData.loja}</span>
+            <span>{dadosLoja.nomeFantasia || dadosLoja.nome || userData.loja}</span>
           </div>
         </div>
         
@@ -350,8 +374,16 @@ const ConfeiteiroDashboard = () => {
                   {userData.loja}
                 </div>
               </div>
-              <div className={Styles.avatar}>
-                {userData.nome.charAt(0).toUpperCase()}
+              <div className={Styles.avatar} style={{ overflow: 'hidden' }}>
+                {userData.fotoLoja ? (
+                  <img 
+                    src={`http://localhost:8080/uploads/${userData.fotoLoja}`} 
+                    alt="Avatar" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                ) : (
+                  userData.nome?.charAt(0).toUpperCase() || '🧁'
+                )}
               </div>
             </div>
           </div>

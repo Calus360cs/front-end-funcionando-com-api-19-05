@@ -30,11 +30,10 @@ const ImageUploader = ({ onImageSelect, currentImage }) => {
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const imageUrl = e.target.result;
-                setPreview(imageUrl);
-                onImageSelect(imageUrl);
+                setPreview(e.target.result);
             };
             reader.readAsDataURL(file);
+            onImageSelect(file); // Passa o File real, não base64
         } else {
             alert('Por favor, selecione apenas arquivos de imagem');
         }

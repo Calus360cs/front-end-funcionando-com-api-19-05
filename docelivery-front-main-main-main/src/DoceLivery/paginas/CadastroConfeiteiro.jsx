@@ -91,30 +91,38 @@ const CadastroConfeiteiro = () => {
         }
         setLoading(true);
         try {
-            const payload = {
-    nome: formData.nome,
-    email: formData.email,
-    senha: formData.senha,
-    cpf: formData.cpf,
-    telefone: formData.telefone,
-    dataNascimento: formData.dataNascimento,
-    
-    // NO JAVA O NOME É nomeLoja
-    nomeLoja: formData.nomeConfeitaria, 
-    cnpj: formData.cnpj,
-    
-    // CAMPOS DE ENDEREÇO (Ajustados para o padrão do seu Usuario.java)
-    cep: formData.cep,
-    endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ', ' + formData.complemento : ''}`,
-    bairro: formData.bairro,
-    cidade: formData.cidade,
-    uf: formData.estado, // No banco costuma ser 'uf', mude para 'estado' se no Java estiver 'estado'
-};
+            const dadosConfeiteiro = {
+                nome: formData.nome,
+                email: formData.email,
+                senha: formData.senha,
+                telefone: formData.telefone,
+                cpf: formData.cpf,
+                tipoUsuario: 'CONFEITEIRO',
+                dataNascimento: formData.dataNascimento,
+                cep: formData.cep.replace(/\D/g, ''),
+                endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ', ' + formData.complemento : ''}`,
+                bairro: formData.bairro,
+                cidade: formData.cidade,
+                estado: formData.estado,
+                categoria: 'Bolos e Doces',
+                loja: {
+                    nomeFantasia: formData.nomeConfeitaria,
+                    cnpj: formData.cnpj.replace(/\D/g, ''),
+                    telefone: formData.telefone.replace(/\D/g, ''),
+                    endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ', ' + formData.complemento : ''}`,
+                    descricao: formData.descricaoLoja || ''
+                }
+            };
+
+            const formPayload = new FormData();
+            formPayload.append('dados', new Blob([JSON.stringify(dadosConfeiteiro)], { type: 'application/json' }));
+            if (formData.foto) {
+                formPayload.append('foto', formData.foto);
+            }
 
             const response = await fetch('http://localhost:8080/api/auth/cadastro/confeiteiro', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: formPayload,
             });
 
             const data = await response.json().catch(() => null);
