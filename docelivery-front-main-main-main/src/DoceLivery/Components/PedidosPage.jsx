@@ -45,11 +45,11 @@ const PedidosPage = () => {
                         if (pedidoWebSocket.status === 'ENTREGUE' || pedidoWebSocket.status === 'CANCELADO') {
                             return filaAtual.filter(p => p.id !== pedidoWebSocket.id);
                         }
-                        // Se foi apenas uma mudança interna (ex: PENDENTE -> EM_PREPARACAO), atualiza o card
+                        // Se foi apenas uma mudança interna (ex: NOVO -> PREPARANDO), atualiza o card
                         return filaAtual.map(p => p.id === pedidoWebSocket.id ? pedidoWebSocket : p);
                     } else {
-                        // Se é um pedido totalmente novo que acabou de ser criado pelo cliente
-                        if (pedidoWebSocket.status === 'PENDENTE') {
+                        // CORRIGIDO: Mudado de 'PENDENTE' para 'NOVO' para aceitar o Enum do seu Java
+                        if (pedidoWebSocket.status === 'NOVO') {
                             // Toca um alerta sonoro de cozinha (Link de áudio público de um 'ping')
                             new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav').play().catch(() => {});
                             // Coloca o novo pedido no topo da lista
@@ -67,9 +67,9 @@ const PedidosPage = () => {
         return () => {
             // 🚨 Só desconecta se o stompClient existir E estiver conectado de fato
             if (stompClient && stompClient.connected) {
-              stompClient.disconnect(() => {
-                 console.log("WebSocket desconectado com sucesso!");
-              });
+            stompClient.disconnect(() => {
+                console.log("WebSocket desconectado com sucesso!");
+            });
             }
         };
     }, [confeiteiroId]);

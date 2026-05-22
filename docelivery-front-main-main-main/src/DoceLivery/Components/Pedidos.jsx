@@ -3,9 +3,10 @@ import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
 import PedidoCard from './PedidoCard';
 
+// CORRIGIDO:IDs alterados para corresponder exatamente aos Enums retornados pela API Java
 const abas = [
-    { id: 'PENDENTE', nome: 'Novos' },
-    { id: 'EM_PREPARACAO', nome: 'Em Preparação' },
+    { id: 'NOVO', nome: 'Novos' },
+    { id: 'PREPARANDO', nome: 'Em Preparação' },
     { id: 'PRONTO', nome: 'Prontos' },
     { id: 'ENTREGUE', nome: 'Histórico' },
 ];
@@ -13,7 +14,8 @@ const abas = [
 const Pedidos = () => {
     const [pedidos, setPedidos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filtro, setFiltro] = useState('PENDENTE');
+    // CORRIGIDO:Filtro inicial alterado para o novo ID padrão da primeira aba
+    const [filtro, setFiltro] = useState('NOVO');
     const confeiteiroId = AuthService.getUserId();
 
     useEffect(() => {

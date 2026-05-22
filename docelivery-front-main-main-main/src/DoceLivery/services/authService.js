@@ -26,6 +26,9 @@ class AuthService {
     // Informações Básicas (grava mesmo quando não há token)
     try {
       if (u) {
+        // 🟢 Salva o objeto exatamente como veio do banco de dados Java (Requisitado)
+        localStorage.setItem('user', JSON.stringify(u));
+
         if (u.tipo || tipoDefault) localStorage.setItem('userType', ((u.tipo || tipoDefault) + '').toLowerCase());
         const nomeUsuario = u.nome || u.nomeConfeiteiro || u.userName || u.nomeLoja || u.nomeFantasia || '';
         if (nomeUsuario) localStorage.setItem('userName', nomeUsuario);
@@ -97,6 +100,11 @@ class AuthService {
       const response = await axios.post(`http://localhost:8080/api/auth/login`, credentials);
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token);
+        
+        // 🟢 Salva o objeto exatamente como veio do banco de dados Java
+        const usuarioGeral = response.data.user || response.data;
+        localStorage.setItem('user', JSON.stringify(usuarioGeral));
+
         this._salvarDadosUsuario(response.data, 'confeiteiro');
         await this.fetchAndSaveProfile(credentials.email, response.data.token);
       }
@@ -179,7 +187,9 @@ class AuthService {
         } : null
       };
 
-      localStorage.setItem('user', JSON.stringify(usuarioFormatado));
+      // 🟢 Salva o objeto bruto vindo do profileData para garantir compatibilidade total com o Java
+      localStorage.setItem('user', JSON.stringify(profileData));
+      
       localStorage.setItem('dadosConfeiteiro', JSON.stringify(profileData));
       this._salvarDadosUsuario(profileData, 'confeiteiro');
 

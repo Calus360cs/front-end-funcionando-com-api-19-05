@@ -1,36 +1,40 @@
 import React from 'react';
 
 const PedidoCard = ({ pedido, onAtualizarStatus }) => {
-    // Desestruturando as propriedades que vêm do seu Backend Java
-    // Note que usamos valorPedido e numeroPedido conforme sua Entity
+    // Evita quebra caso o componente seja renderizado sem dados por milissegundos
+    if (!pedido) return null;
+
     const { id, status, cliente, valorPedido, itens, numeroPedido, agendado, dataEntregaAgendada } = pedido;
 
-    // Mapeamento de status para cores (Design do DoceLivery)
+    // Garantindo que o status seja avaliado sempre em letras maiúsculas
+    const statusChave = status ? status.toUpperCase() : 'NOVO';
+
+    // 1. CORRIGIDO: Alinhado perfeitamente com os Enums do seu Java (StatusPedido)
     const statusColors = {
-        PENDENTE: '#007bff',      // Azul
-        EM_PREPARACAO: '#ffc107', // Amarelo
+        NOVO: '#007bff',          // Azul
+        PREPARANDO: '#ffc107',    // Amarelo
         PRONTO: '#28a745',        // Verde
         AGENDADO: '#17a2b8',      // Ciano
         CANCELADO: '#dc3545',     // Vermelho
     };
 
-    // Texto amigável para exibição
+    // 2. CORRIGIDO: Nomes amigáveis alinhados aos novos status
     const statusTexto = {
-        PENDENTE: 'Novo Pedido',
-        EM_PREPARACAO: 'Em Preparação',
+        NOVO: 'Novo Pedido',
+        PREPARANDO: 'Em Preparação',
         PRONTO: 'Pronto para Retirada',
         AGENDADO: 'Agendado',
         CANCELADO: 'Cancelado'
     };
 
     const getAcoes = () => {
-        switch (status.toUpperCase()) {
-            case 'PENDENTE':
+        switch (statusChave) {
+            case 'NOVO':
             case 'AGENDADO':
                 return (
                     <>
                         <button
-                            onClick={() => onAtualizarStatus(id, 'EM_PREPARACAO')}
+                            onClick={() => onAtualizarStatus(id, 'PREPARANDO')}
                             style={{ padding: '8px 12px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '8px', fontWeight: 'bold' }}
                         >
                             Aceitar / Iniciar
@@ -43,7 +47,7 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
                         </button>
                     </>
                 );
-            case 'EM_PREPARACAO':
+            case 'PREPARANDO':
                 return (
                     <button
                         onClick={() => onAtualizarStatus(id, 'PRONTO')}
@@ -53,13 +57,13 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
                     </button>
                 );
             default:
-                return <span style={{ color: '#6c757d', fontWeight: 'italic' }}>Pedido finalizado</span>;
+                return <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Pedido finalizado</span>;
         }
     };
 
     return (
         <div style={{
-            border: `2px solid ${statusColors[status] || '#ccc'}`,
+            border: `2px solid ${statusColors[statusChave] || '#ccc'}`,
             borderRadius: '12px',
             padding: '15px',
             backgroundColor: '#fff',
@@ -67,16 +71,16 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
             position: 'relative'
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: 0, color: '#333' }}>{numeroPedido}</h4>
+                <h4 style={{ margin: 0, color: '#333' }}>{numeroPedido || `Pedido #${id}`}</h4>
                 <span style={{
-                    backgroundColor: statusColors[status] || '#6c757d',
+                    backgroundColor: statusColors[statusChave] || '#6c757d',
                     color: '#fff',
                     padding: '4px 10px',
                     borderRadius: '20px',
                     fontSize: '12px',
                     fontWeight: 'bold'
                 }}>
-                    {statusTexto[status] || status}
+                    {statusTexto[statusChave] || statusChave}
                 </span>
             </div>
 
@@ -84,7 +88,7 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
                 <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {cliente?.nome || 'Cliente não identificado'}</p>
                 
                 {/* Exibe a data se for um pedido agendado */}
-                {agendado && (
+                {agendado && dataEntregaAgendada && (
                     <p style={{ margin: '5px 0', color: '#d63384' }}>
                         <strong>Entrega:</strong> {new Date(dataEntregaAgendada).toLocaleString('pt-BR')}
                     </p>
@@ -95,7 +99,7 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
                     <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
                         {itens?.map((item, index) => (
                             <li key={index}>
-                                {item.quantidade}x {item.produto?.nome}
+                                {item.quantidade}x {item.produto?.nome || 'Doce'}
                             </li>
                         ))}
                     </ul>
@@ -103,7 +107,7 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
             </div>
 
             <h3 style={{ margin: '15px 0', color: '#ff69b4', textAlign: 'right' }}>
-                Total: R$ {valorPedido?.toFixed(2)}
+                Total: R$ {valorPedido?.toFixed(2) || '0.00'}
             </h3>
 
             <div style={{ borderTop: '1px solid #eee', paddingTop: '12px', display: 'flex', justifyContent: 'center' }}>
