@@ -1,14 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoCalendar, IoTime, IoAdd } from 'react-icons/io5';
+import OrderService from '../services/orderService';
+import AuthService from '../services/authService';
 import Styles from './CalendarioEncomendas.module.css';
 
 const CalendarioEncomendas = () => {
     const [mesAtual, setMesAtual] = useState(new Date());
-    const [encomendasAgendadas] = useState([
-        { id: 1, data: '2024-01-15', cliente: 'Ana Silva', produto: 'Bolo Personalizado', horario: '14:00' },
-        { id: 2, data: '2024-01-20', cliente: 'João Santos', produto: 'Bolo 3 Andares', horario: '16:00' },
-        { id: 3, data: '2024-01-25', cliente: 'Maria Lima', produto: 'Cupcakes Festa', horario: '10:00' }
-    ]);
+    const [encomendasAgendadas, setEncomendasAgendadas] = useState([]);
+    const confeiteiroId = AuthService.getUserId();
+
+    useEffect(() => {
+        const carregarAgendamentosDoBanco = async () => {
+            try {
+                const dados = await OrderService.getFilaTrabalho(confeiteiroId);
+                const formatados = (dados || []).filter(p => p.agendado).map(p => ({
+                    id: p.id,
+                    data: p.dataEntregaAgendada.split('T')[0],
+                    cliente: p.cliente?.nome || 'WhatsApp',
+                    horario: p.dataEntregaAgendada.split('T')[1]?.slice(0,5)
+                }));
+                setEncomendasAgendadas(formatados);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        carregarAgendamentosDoBanco();
+    }, [confeiteiroId]); // Adicionado confeiteiroId para evitar loops ou dados inconsistentes
 
     const getDiasDoMes = () => {
         const ano = mesAtual.getFullYear();

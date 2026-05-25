@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import ApiService from '../services/api';
 import AuthService from '../services/authService';
 import ProdutoService from '../services/produtoService';
@@ -14,7 +13,6 @@ const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
 const CardapioManager = () => {
     const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [arquivoImagem, setArquivoImagem] = useState(null);
@@ -27,12 +25,6 @@ const CardapioManager = () => {
     const [modalType, setModalType] = useState('produto');
     const [combos, setCombos] = useState([]);
     const [buscaProdutoKit, setBuscaProdutoKit] = useState('');
-
-    // Mantendo estados para criação de Kits
-    const [arrayDeIdsSelecionados, setArrayDeIdsSelecionados] = useState([]);
-    const [valorTotal, setValorTotal] = useState(0);
-    const [nomeDoKit, setNomeDoKit] = useState('');
-    const [descricaoDoKit, setDescricaoDoKit] = useState('');
 
     const confeiteiroId = AuthService.getUserId();
 
@@ -89,13 +81,8 @@ const CardapioManager = () => {
         return categoryMap[normalizeCategoryKey(stringValue)] || null;
     };
 
-    useEffect(() => {
-        carregarProdutos();
-    }, [confeiteiroId]);
-
-    const carregarProdutos = async () => {
+    const carregarProdutos = useCallback(async () => {
         if (!confeiteiroId) return;
-        setLoading(true);
         try {
             // Usando o ProdutoService para padronização
             const data = await ProdutoService.getProdutosDaLoja(confeiteiroId);
@@ -108,23 +95,13 @@ const CardapioManager = () => {
                 : [];
             setCombos(kitsFiltrados);
         } catch (error) {
-            console.error("Erro ao carregar produtos:", error);
-        } finally {
-            setLoading(false);
+            console.error("Erro ao carregar dados do cardápio:", error);
         }
-    };
+    }, [confeiteiroId]);
 
-    const toggleProduto = (id, preco) => {
-        setArrayDeIdsSelecionados(prev => {
-            if (prev.includes(id)) {
-                setValorTotal(v => v - Number(preco));
-                return prev.filter(item => item !== id);
-            } else {
-                setValorTotal(v => v + Number(preco));
-                return [...prev, id];
-            }
-        });
-    };
+    useEffect(() => {
+        carregarProdutos();
+    }, [carregarProdutos]);
 
     const handleOpenModal = (type, item = null) => {
         setModalType(type);
@@ -170,6 +147,7 @@ const CardapioManager = () => {
             alert('Excluído com sucesso!');
             carregarProdutos();
         } catch (error) {
+            console.error(error);
             alert('Erro ao excluir item.');
         }
     };
@@ -194,6 +172,7 @@ const CardapioManager = () => {
             await ProdutoService.atualizarProduto(id, atualizado, null);
             carregarProdutos();
         } catch (error) {
+            console.error(error);
             alert('Erro ao atualizar disponibilidade.');
         }
     };

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
+import 'moment/locale/pt-br';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Agenda.module.css'; // Vamos criar este arquivo de estilo
 
@@ -76,6 +77,7 @@ const Agenda = () => {
                 startAccessor="start"
                 endAccessor="end"
                 style={{ height: 600 }}
+                culture="pt-br"
                 selectable
                 onSelectSlot={handleSelectSlot}
                 views={['month', 'week', 'day']}

@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState } from 'react';
 import { useCartStore } from "../context/CartContext.jsx";
 import OrderService from "../services/OrderService"; // Importe o serviço de pedidos

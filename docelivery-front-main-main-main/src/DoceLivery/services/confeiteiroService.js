@@ -1,9 +1,17 @@
 import ApiService from './api';
 import AuthService from './authService';
 
+/**
+ * Atualiza o perfil da loja enviando JSON (Cenário A)
+ */
+export const atualizarPerfilLoja = async (idLoja, dadosLoja) => {
+  // O segundo parâmetro DEVE ser o objeto de dados que vai no corpo (Body)
+  return await ApiService.put(`/confeiteiro/loja/atualizar/${idLoja}`, dadosLoja);
+};
+
 class ConfeiteiroService {
-  // Obter todas as confeiteiras
-  async getConfeiteiro() {
+  // 🟢 CORRIGIDO: Nome alterado para plural para evitar duplicidade com a busca por ID
+  async getConfeiteiros() {
     return await ApiService.get('/confeiteiro');
   }
 
@@ -22,6 +30,12 @@ class ConfeiteiroService {
     return await ApiService.put(`/confeiteiro/${id}`, dadosConfeiteiro);
   }
 
+  // Método da classe para compatibilidade com o PerfilLoja.jsx
+  async atualizarPerfilLoja(idLoja, dadosLoja) {
+    // O segundo parâmetro DEVE ser o objeto de dados que vai no corpo (Body)
+    return await ApiService.put(`/confeiteiro/loja/atualizar/${idLoja}`, dadosLoja);
+  }
+
   // Atualizar perfil do confeiteiro logado
   async atualizarPerfil(dados) {
     const id = AuthService.getUserId();
@@ -32,17 +46,15 @@ class ConfeiteiroService {
       id,
       nome: dados.nome,
       email: dados.email,
-      loja: {
-        nomeFantasia: dados.nome,
-        descricao: dados.descricao,
-        cnpj: dados.cnpj,
-        telefone: dados.telefone,
-        endereco: `${dados.logradouro}, ${dados.numero}`,
-        bairro: dados.bairro,
-        cidade: dados.cidade,
-        uf: dados.estado,
-        cep: dados.cep,
-      }
+      nomeFantasia: dados.nome,
+      descricao: dados.descricao,
+      cnpj: dados.cnpj,
+      telefone: dados.telefone,
+      endereco: `${dados.logradouro}, ${dados.numero}`,
+      bairro: dados.bairro,
+      cidade: dados.cidade,
+      uf: dados.estado,
+      cep: dados.cep,
     };
 
     console.log('ID que estou enviando:', id);

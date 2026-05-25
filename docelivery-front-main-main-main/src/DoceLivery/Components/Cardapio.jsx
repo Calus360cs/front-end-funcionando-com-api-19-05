@@ -76,17 +76,6 @@ const Cardapio = () => {
         }
     };
 
-    const handleToggleDisponibilidade = async (produto) => {
-        try {
-            const atualizado = { ...produto, disponivel: !produto.disponivel };
-            // Corrigido de /products para /produtos
-            await ApiService.put(`/produtos/${produto.id}`, atualizado);
-            carregarProdutos();
-        } catch (error) {
-            alert("Erro ao atualizar disponibilidade.");
-        }
-    };
-
     const toggleProduto = (id, preco) => {
         setArrayDeIdsSelecionados(prev => {
             if (prev.includes(id)) {

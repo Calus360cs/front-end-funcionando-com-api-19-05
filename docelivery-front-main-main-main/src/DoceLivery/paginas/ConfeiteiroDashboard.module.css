@@ -143,6 +143,7 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 15px;
   margin: 15px;
@@ -256,6 +257,7 @@
   border-radius: 15px;
   padding: 2rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -613,10 +615,6 @@ input:checked + .slider:before {
   text-align: center;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-}
-
-.editMode {
-  /* Estilos para quando o modo de edição está ativo */
 }
 
 .editMode .editable {

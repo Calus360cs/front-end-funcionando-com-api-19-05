@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CardapioPublico from '../Components/CardapioPublico';
 import ConfeiteiroService from '../services/confeiteiroService';
@@ -21,76 +21,80 @@ const LojaIndividual = () => {
         observacoes: ''
     });
 
+    // FUNÇÃO CORRETIVA: Centraliza o mapeamento e remove a duplicação de fallbacks
+    const mapearDadosLoja = useCallback((dadosBrutos) => {
+        const info = dadosBrutos?.loja || dadosBrutos || {};
+        const rawImagem = info.imagem || info.imagemUrl || info.logoUrl;
+
+        return {
+            id: lojaId,
+            nome: info.nomeFantasia || info.nomeLoja || info.nome || 'Confeitaria',
+            telefone: info.telefone || dadosBrutos?.telefone || info.phone || '',
+            endereco: info.endereco || info.address || (info.logradouro ? `${info.logradouro}, ${info.numero}` : ''),
+            descricao: info.descricao || info.description || '',
+            avaliacao: dadosBrutos?.avaliacao || info.rating || '5.0',
+            totalAvaliacoes: dadosBrutos?.totalAvaliacoes || info.reviews || '0',
+            imagem: rawImagem 
+                ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:') 
+                    ? rawImagem 
+                    : `${IMAGE_URL}/${rawImagem}`)
+                : IMAGE_MAP['brigadeiro'],
+            horarioFuncionamento: info.horarioFuncionamento || info.hours || {
+                segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
+                quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
+                sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
+                domingo: 'Fechado'
+            }
+        };
+    }, [lojaId]);
+
     useEffect(() => {
+        // Mapear dados e carregar loja movidos para dentro do efeito ou protegidos
+        // Seguindo instrução de mover ou usar useCallback
         const carregarLoja = async () => {
             try {
                 const response = await ConfeiteiroService.getConfeiteiro(lojaId);
                 const dados = response.data || response;
                 
-                const lojaInfo = dados.loja || dados;
-                const rawImagem = lojaInfo.imagem || lojaInfo.imagemUrl || lojaInfo.logoUrl;
-
-                setLoja({
-                    id: lojaId,
-                    nome: lojaInfo.nomeFantasia || lojaInfo.nome || 'Confeitaria',
-                    telefone: lojaInfo.telefone || dados.telefone || '',
-                    endereco: lojaInfo.endereco || (lojaInfo.logradouro ? `${lojaInfo.logradouro}, ${lojaInfo.numero}` : ''),
-                    descricao: lojaInfo.descricao || '',
-                    avaliacao: dados.avaliacao || '5.0',
-                    totalAvaliacoes: dados.totalAvaliacoes || '0',
-                    imagem: rawImagem 
-                        ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:') 
-                            ? rawImagem 
-                            : `${IMAGE_URL}/${rawImagem}`)
-                        : IMAGE_MAP['brigadeiro'],
-                    horarioFuncionamento: lojaInfo.horarioFuncionamento || {
-                        segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
-                        quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
-                        sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
-                        domingo: 'Fechado'
-                    }
-                });
+                // Aplica o mapeador unificado com os dados da API
+                setLoja(mapearDadosLoja(dados));
             } catch (error) {
-                console.error('Erro ao carregar loja:', error);
+                console.error('Erro ao carregar loja da API, tentando localStorage:', error);
+                
                 const stored = localStorage.getItem('selectedStore');
-                const storedData = stored ? JSON.parse(stored) : null;
-                if (storedData) {
-                    setLoja({
-                        id: lojaId,
-                        nome: storedData.nomeFantasia || storedData.nomeLoja || 'Confeitaria',
-                        telefone: storedData.telefone || storedData.phone || '',
-                        endereco: storedData.endereco || storedData.address || '',
-                        descricao: storedData.descricao || storedData.description || '',
-                        avaliacao: storedData.rating || storedData.avaliacao || '5.0',
-                        totalAvaliacoes: storedData.reviews || '0',
-                        imagem: storedData.logoUrl || null,
-                        horarioFuncionamento: storedData.horarioFuncionamento || storedData.hours || {
-                            segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
-                            quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
-                            sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
-                            domingo: 'Fechado'
-                        }
-                    });
+                if (stored) {
+                    const storedData = JSON.parse(stored);
+                    // Aplica o MESMO mapeador unificado com os dados do LocalStorage
+                    setLoja(mapearDadosLoja(storedData));
                 }
             }
         };
+        
         if (lojaId) carregarLoja();
-    }, [lojaId]);
+    }, [lojaId, mapearDadosLoja]);
 
     const handleVoltar = () => {
         navigate('/docelivery/cliente/Home-Page');
     };
     
-    const handleEncomendaSubmit = (e) => {
+    const handleEncomendaSubmit = async (e) => {
         e.preventDefault();
-        // Aqui você pode integrar com a agenda do confeiteiro
-        alert(`Encomenda solicitada para ${encomendaData.dataEntrega}!\nEntraremos em contato para confirmar a disponibilidade.`);
-        setShowEncomendaModal(false);
-        setEncomendaData({ produto: '', descricao: '', dataEntrega: '', observacoes: '' });
+        try {
+            // Aqui simulamos o envio da solicitação para a API de pedidos
+            console.log("Solicitando encomenda para loja:", loja.id, encomendaData);
+            
+            alert(`Pedido de encomenda enviado para ${loja.nome}!\nAguarde a confirmação da confeitaria.`);
+            
+            setShowEncomendaModal(false);
+            setEncomendaData({ produto: '', descricao: '', dataEntrega: '', observacoes: '' });
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao processar solicitação de encomenda.");
+        }
     };
-    
+
     if (!loja) {
-        return <div>Carregando...</div>;
+        return <div className={Styles.loading}>Carregando...</div>;
     }
 
     return (
@@ -125,7 +129,7 @@ const LojaIndividual = () => {
                         <IoCall size={16} />
                         <span>{loja.telefone}</span>
                     </div>
-                    <p className={Styles.descricao}>{loja.descricao}</p>
+                    <p className={Styles.descricaoText}>{loja.descricao}</p>
                 </div>
             </div>
 
@@ -137,32 +141,22 @@ const LojaIndividual = () => {
                 <div className={Styles.horarioGrid}>
                     {Object.entries(loja.horarioFuncionamento).map(([dia, horario]) => (
                         <div key={dia} className={Styles.horarioItem}>
-                            <span className={Styles.dia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</span>
+                            <span className={Styles.dia}>{dia}</span>
                             <span className={Styles.horario}>{horario}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className={Styles.actionsSection}>
-                <button 
-                    className={Styles.encomendaBtn}
-                    onClick={() => setShowEncomendaModal(true)}
-                >
-                    <IoCalendarOutline size={20} />
-                    Fazer Encomenda
-                </button>
-            </div>
-
             <div className={Styles.cardapioSection}>
-                <CardapioPublico loja={loja} />
+                <CardapioPublico loja={loja} onOpenEncomendaModal={() => setShowEncomendaModal(true)} />
             </div>
             
-            {/* Modal de Encomenda */}
             {showEncomendaModal && (
                 <div className={Styles.modalOverlay} onClick={() => setShowEncomendaModal(false)}>
-                    <div className={Styles.encomendaModal} onClick={(e) => e.stopPropagation()}>
-                        <h3>Fazer Encomenda - {loja.nome}</h3>
+                    <div className={Styles.encomendaModal} style={{ borderTop: '6px solid #8a2be2' }} onClick={(e) => e.stopPropagation()}>
+                        <h3 style={{ color: '#8a2be2', fontWeight: '700' }}>Solicitar Encomenda</h3>
+                        <p style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '20px' }}>Você está solicitando um pedido personalizado para <strong>{loja.nome}</strong></p>
                         <form onSubmit={handleEncomendaSubmit}>
                             <div className={Styles.formGroup}>
                                 <label>Produto/Tipo de Doce:</label>
@@ -204,11 +198,7 @@ const LojaIndividual = () => {
                                 />
                             </div>
                             <div className={Styles.modalActions}>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setShowEncomendaModal(false)}
-                                    className={Styles.cancelBtn}
-                                >
+                                <button type="button" onClick={() => setShowEncomendaModal(false)} className={Styles.cancelBtn}>
                                     Cancelar
                                 </button>
                                 <button type="submit" className={Styles.submitBtn}>

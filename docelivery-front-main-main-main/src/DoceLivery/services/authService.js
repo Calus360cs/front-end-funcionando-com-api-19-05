@@ -168,24 +168,24 @@ class AuthService {
       }
 
       // 🟢 CORREÇÃO: Mapeia o JSON para a estrutura que o seu Header e Tabelas esperam
-      const usuarioFormatado = {
-        id: profileData.id,
-        nome: profileData.nome,
-        email: profileData.email,
-        telefone: profileData.telefone,
-        // Facilita o acesso direto no Dashboard
-        nomeLoja: profileData.loja?.nomeFantasia || profileData.nomeLoja || "Minha Confeitaria",
-        fotoLoja: profileData.loja?.imagem || profileData.loja?.imagemUrl || null,
-        // Garantimos que o objeto 'loja' fique no lugar certo para o Front ler
-        loja: profileData.loja ? {
-          id: profileData.loja.id,
-          nomeFantasia: profileData.loja.nomeFantasia,
-          descricao: profileData.loja.descricao,
-          cnpj: profileData.loja.cnpj,
-          telefone: profileData.loja.telefone,
-          endereco: profileData.loja.endereco
-        } : null
-      };
+      // const usuarioFormatado = {
+      //   id: profileData.id,
+      //   nome: profileData.nome,
+      //   email: profileData.email,
+      //   telefone: profileData.telefone,
+      //   // Facilita o acesso direto no Dashboard
+      //   nomeLoja: profileData.loja?.nomeFantasia || profileData.nomeLoja || "Minha Confeitaria",
+      //   fotoLoja: profileData.loja?.imagem || profileData.loja?.imagemUrl || null,
+      //   // Garantimos que o objeto 'loja' fique no lugar certo para o Front ler
+      //   loja: profileData.loja ? {
+      //     id: profileData.loja.id,
+      //     nomeFantasia: profileData.loja.nomeFantasia,
+      //     descricao: profileData.loja.descricao,
+      //     cnpj: profileData.loja.cnpj,
+      //     telefone: profileData.loja.telefone,
+      //     endereco: profileData.loja.endereco
+      //   } : null
+      // };
 
       // 🟢 Salva o objeto bruto vindo do profileData para garantir compatibilidade total com o Java
       localStorage.setItem('user', JSON.stringify(profileData));

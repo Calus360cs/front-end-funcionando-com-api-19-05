@@ -1,62 +1,106 @@
-// src/Components/PerfilLoja.jsx
-
 import React, { useState, useEffect } from 'react';
-import { IoSave, IoTime, IoImage, IoLocation, IoCall } from 'react-icons/io5';
+import { IoSave, IoTime, IoImage, IoLocation } from 'react-icons/io5';
 import { useLoja } from '../context/LojaContext';
 import ImageUploader from './ImageUploader';
 import Styles from './PerfilLoja.module.css';
-import confeiteiroService from '../services/confeiteiroService';
+import confeiteiroService, { atualizarPerfilLoja } from '../services/confeiteiroService';
 
-const PerfilLoja = ({ onUserDataUpdate }) => {
+const PerfilLoja = () => {
     const { dadosLoja, atualizarDadosLoja, atualizarHorarioFuncionamento } = useLoja();
+    
+    // Guardaremos o id real da loja retornado pelo banco de dados dinamicamente aqui
+    // eslint-disable-next-line no-unused-vars
+    const [lojaIdReal, setLojaIdReal] = useState(null);
+
     const [formData, setFormData] = useState({
-        nome: dadosLoja.nomeFantasia || dadosLoja.nome || '',
-        email: dadosLoja.email || localStorage.getItem('userEmail') || '',
-        telefone: dadosLoja.telefone || localStorage.getItem('userTelefone') || '',
-        cnpj: dadosLoja.cnpj || localStorage.getItem('userCnpj') || '',
-        cep: dadosLoja.cep || localStorage.getItem('userCep') || '',
-        logradouro: dadosLoja.logradouro || '',
-        numero: dadosLoja.numero || '',
-        complemento: dadosLoja.complemento || '',
-        bairro: dadosLoja.bairro || localStorage.getItem('userBairro') || '',
-        cidade: dadosLoja.cidade || localStorage.getItem('userCidade') || '',
-        estado: dadosLoja.estado || localStorage.getItem('userUf') || '',
-        descricao: dadosLoja.descricao || '',
-        imagem: dadosLoja.imagem || '',
+        nome: '',
+        email: '',
+        telefone: '',
+        cnpj: '',
+        cep: '',
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        estado: '',
+        descricao: '',
+        imagem: '',
     });
-    const [horarios, setHorarios] = useState(dadosLoja.horarioFuncionamento);
+    
+    const [horarios, setHorarios] = useState({
+        segunda: '', terca: '', quarta: '', quinta: '', sexta: '', sabado: '', domingo: ''
+    });
     const [cepLoading, setCepLoading] = useState(false);
 
+    // Carrega os dados reais vindos do banco de dados ao montar o componente
     useEffect(() => {
         const carregarPerfilAPI = async () => {
-            const id = localStorage.getItem('userId');
-            if (!id) return;
+            const idUsuario = localStorage.getItem('userId');
+            if (!idUsuario) return;
 
             try {
-                const usuario = await confeiteiroService.getConfeiteiro(id);
+                const usuario = await confeiteiroService.getConfeiteiro(idUsuario);
+                
                 if (usuario) {
+                    // 🟢 CAPTURA DO ID REAL DA LOJA
+                    if (usuario.loja?.id) {
+                        setLojaIdReal(usuario.loja.id);
+                    }
+
+                    // Tratamento seguro do endereço splitado
+                    const enderecoPartes = usuario.loja?.endereco ? usuario.loja.endereco.split(',') : [];
+                    const logradouroBase = enderecoPartes[0] || usuario.logradouro || '';
+                    const numeroBase = enderecoPartes[1] ? enderecoPartes[1].trim() : '';
+
                     setFormData({
                         nome: usuario.loja?.nomeFantasia || usuario.nomeLoja || usuario.nomeConfeitaria || usuario.nome || '',
                         email: usuario.email || '',
                         telefone: usuario.loja?.telefone || usuario.telefone || '',
                         cnpj: usuario.loja?.cnpj || usuario.cnpj || '',
                         cep: usuario.loja?.cep || usuario.cep || '',
-                        logradouro: usuario.loja?.endereco?.split(',')[0] || usuario.logradouro || '',
-                        numero: usuario.loja?.endereco?.split(',')[1]?.trim() || '',
+                        logradouro: logradouroBase,
+                        numero: numeroBase,
                         complemento: usuario.complemento || '',
                         bairro: usuario.loja?.bairro || usuario.bairro || '',
                         cidade: usuario.loja?.cidade || usuario.cidade || '',
                         estado: usuario.loja?.uf || usuario.loja?.estado || usuario.uf || usuario.estado || '',
                         descricao: usuario.loja?.descricao || usuario.descricao || '',
-                        imagem: usuario.loja?.imagem || usuario.imagemUrl || usuario.imagem || '',
+                        imagem: usuario.loja?.fotoUrl || usuario.loja?.imagem || usuario.imagemUrl || usuario.imagem || '',
                     });
+
+                    if (usuario.loja?.horarioFuncionamento) {
+                        setHorarios(usuario.loja.horarioFuncionamento);
+                    } else if (dadosLoja?.horarioFuncionamento) {
+                        setHorarios(dadosLoja.horarioFuncionamento);
+                    }
                 }
             } catch (error) {
-                console.error("Erro ao carregar perfil da API, usando local:", error);
+                console.error("Erro ao carregar perfil da API, tentando dados do contexto local:", error);
+                // Fallback caso a API falhe na primeira requisição
+                if (dadosLoja) {
+                    setFormData({
+                        nome: dadosLoja.nomeFantasia || dadosLoja.nome || '',
+                        email: dadosLoja.email || localStorage.getItem('userEmail') || '',
+                        telefone: dadosLoja.telefone || localStorage.getItem('userTelefone') || '',
+                        cnpj: dadosLoja.cnpj || localStorage.getItem('userCnpj') || '',
+                        cep: dadosLoja.cep || localStorage.getItem('userCep') || '',
+                        logradouro: dadosLoja.logradouro || '',
+                        numero: dadosLoja.numero || '',
+                        complemento: dadosLoja.complemento || '',
+                        bairro: dadosLoja.bairro || localStorage.getItem('userBairro') || '',
+                        cidade: dadosLoja.cidade || localStorage.getItem('userCidade') || '',
+                        estado: dadosLoja.estado || localStorage.getItem('userUf') || '',
+                        descricao: dadosLoja.descricao || '',
+                        imagem: dadosLoja.imagem || '',
+                    });
+                }
             }
         };
+
         carregarPerfilAPI();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // 🟢 Removido 'dadosLoja' daqui para evitar loops de re-render e perdas de dados
 
     const applyMask = (name, value) => {
         const digits = value.replace(/\D/g, '');
@@ -95,81 +139,84 @@ const PerfilLoja = ({ onUserDataUpdate }) => {
                                 ...prev,
                                 logradouro: data.logradouro || '',
                                 bairro: data.bairro || '',
+                                city: data.localidade || '', // Certifique-se se no seu estado é cidade ou city
                                 cidade: data.localidade || '',
                                 estado: data.uf || '',
                             }));
                         }
                     })
+                    .catch(err => console.error("Erro ao buscar CEP", err))
                     .finally(() => setCepLoading(false));
             }
         }
     };
 
     const handleHorarioChange = (dia, valor) => {
-        setHorarios(prev => ({
-            ...prev,
-            [dia]: valor
-        }));
+        setHorarios(prev => ({ ...prev, [dia]: valor }));
     };
 
-    const handleSubmit = async (e) => {
+    const tratarSalvar = async (e) => {
         e.preventDefault();
+
+        // CORREÇÃO 1: Envia sempre o ID do confeiteiro para bater com a busca findByConfeiteiroId no Java
+        const idParaAtualizar = localStorage.getItem('userId');
+        
+        // 1. Garante que a foto enviada seja estritamente uma String (URL)
+        let urlImagem = '';
+        if (formData.imagem) {
+            if (typeof formData.imagem === 'object') {
+                // Se o uploader salvou como objeto, tenta pegar a propriedade de URL interna
+                urlImagem = formData.imagem.url || formData.imagem.fotoUrl || '';
+            } else {
+                urlImagem = formData.imagem;
+            }
+        }
+
+        // 2. Monta o payload limpando máscaras de CNPJ/Telefone e protegendo strings
+        const dadosDaLoja = {
+            nomeFantasia: formData.nome,
+            cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, // Envia apenas números
+            telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null, // Envia apenas números
+            descricao: formData.descricao || '',
+            endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`,
+            fotoUrl: urlImagem // Agora garantido como String!
+        };
+
         try {
-            const dadosParaEnviar = {
-                id: localStorage.getItem('userId'),
-                nome: formData.nome,
-                email: formData.email,
-                loja: {
-                    nomeFantasia: formData.nome,
-                    descricao: formData.descricao,
-                    cnpj: formData.cnpj,
-                    telefone: formData.telefone,
-                    endereco: `${formData.logradouro}, ${formData.numero}`,
+            console.log("Enviando payload corrigido:", dadosDaLoja); 
+            const response = await atualizarPerfilLoja(idParaAtualizar, dadosDaLoja);
+
+            if (response) {
+                // CORREÇÃO 2: Mapeia corretamente o Confeiteiro completo retornado pelo Java e extrai a loja interna
+                const confeiteiroAtualizado = response.data || response;
+                localStorage.setItem('user', JSON.stringify(confeiteiroAtualizado));
+
+                const lojaAtualizada = confeiteiroAtualizado.loja || {};
+
+                atualizarDadosLoja({
+                    nome: lojaAtualizada.nomeFantasia || formData.nome,
+                    descricao: lojaAtualizada.descricao || formData.descricao,
+                    cnpj: lojaAtualizada.cnpj || formData.cnpj,
+                    telefone: lojaAtualizada.telefone || formData.telefone,
+                    endereco: lojaAtualizada.endereco || `${formData.logradouro}, ${formData.numero}`,
                     bairro: formData.bairro,
                     cidade: formData.cidade,
-                    uf: formData.estado,
+                    estado: formData.estado,
                     cep: formData.cep,
-                }
-            };
-
-            const atualizacao = await confeiteiroService.atualizarPerfil(dadosParaEnviar);
-            const lojaAtualizada = {
-                ...dadosParaEnviar.loja,
-                nomeFantasia: dadosParaEnviar.loja.nomeFantasia,
-            };
-
-            atualizarDadosLoja({
-                nome: lojaAtualizada.nomeFantasia,
-                descricao: lojaAtualizada.descricao,
-                cnpj: lojaAtualizada.cnpj,
-                telefone: lojaAtualizada.telefone,
-                endereco: lojaAtualizada.endereco,
-                bairro: lojaAtualizada.bairro,
-                cidade: lojaAtualizada.cidade,
-                estado: lojaAtualizada.uf,
-                cep: lojaAtualizada.cep,
-                imagem: formData.imagem || dadosParaEnviar.loja.imagem || ''
-            });
-            atualizarHorarioFuncionamento(horarios);
-            localStorage.setItem('nomeLoja', formData.nome);
-            localStorage.setItem('userEmail', formData.email);
-            localStorage.setItem('userTelefone', formData.telefone);
-            localStorage.setItem('userCnpj', formData.cnpj);
-            localStorage.setItem('userCep', formData.cep);
-            localStorage.setItem('userBairro', formData.bairro);
-            localStorage.setItem('userCidade', formData.cidade);
-            localStorage.setItem('userUf', formData.estado);
-            if (onUserDataUpdate) {
-                onUserDataUpdate({ nome: formData.nome, loja: formData.nome });
+                    imagem: lojaAtualizada.fotoUrl || urlImagem || ''
+                });
+                atualizarHorarioFuncionamento(horarios);
             }
+            
+            // 2. Dispara o evento global para avisar o ConfeiteiroDashboard para reler o banco
             window.dispatchEvent(new Event('localStorageUpdate'));
-            alert('Perfil da loja atualizado com sucesso!');
-        } catch (error) {
-            console.error('Erro ao atualizar perfil:', error);
-            alert('Erro ao atualizar perfil. Verifique os dados e tente novamente.');
+            localStorage.setItem('nomeLoja', formData.nome);
+            alert("Perfil da loja atualizado com sucesso!");
+        } catch (erro) {
+            console.error(erro);
+            alert("Erro ao atualizar perfil. Verifique os dados ou a conexão.");
         }
     };
-
 
     const diasSemana = [
         { key: 'segunda', label: 'Segunda-feira' },
@@ -188,7 +235,7 @@ const PerfilLoja = ({ onUserDataUpdate }) => {
                 <p>Gerencie as informações da sua confeitaria</p>
             </div>
 
-            <form onSubmit={handleSubmit} className={Styles.perfilForm}>
+            <form onSubmit={tratarSalvar} className={Styles.perfilForm}>
                 <div className={Styles.section}>
                     <h2>
                         <IoLocation size={20} />
@@ -369,7 +416,7 @@ const PerfilLoja = ({ onUserDataUpdate }) => {
                                 <label>{dia.label}</label>
                                 <input
                                     type="text"
-                                    value={horarios[dia.key]}
+                                    value={horarios[dia.key] || ''}
                                     onChange={(e) => handleHorarioChange(dia.key, e.target.value)}
                                     placeholder="8:00 - 18:00 ou Fechado"
                                 />

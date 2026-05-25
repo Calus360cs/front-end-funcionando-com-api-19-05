@@ -22,23 +22,23 @@ const AgendamentoEncomendas = () => {
 
   // EFECT REAL: Carrega as encomendas agendadas do backend
   useEffect(() => {
-    const carregarAgendados = async () => {
+    const carregarAgendamentosDoBanco = async () => {
       try {
         setLoading(true);
         // Busca os pedidos do confeiteiro
         const dados = await OrderService.getFilaTrabalho(confeiteiroId);
         // Filtra apenas os que possuem status AGENDADO ou que são agendamentos futuros
         const apenasAgendados = (dados || []).filter(p => p.agendado === true);
-        setPedidos(apenasAgendados);
         setEncomendas(apenasAgendados);
       } catch (error) {
-        console.error("Erro ao buscar encomendas agendadas:", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    if (confeiteiroId) carregarAgendados();
-  }, [confeiteiroId]);
+
+    carregarAgendamentosDoBanco();
+  }, [confeiteiroId]); // Adicionado confeiteiroId para garantir que a agenda carregue o ID correto
 
   // Filtra as encomendas para exibir apenas as da data selecionada
   const encomendasDoDia = useMemo(() => {

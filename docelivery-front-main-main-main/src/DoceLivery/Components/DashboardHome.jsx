@@ -2,56 +2,46 @@
 
 import React, { useState, useEffect } from 'react';
 import Styles from '../Components/DashboardHome.module.css';
-import { FaBoxOpen, FaChartLine, FaUsers, FaEdit, FaClock, FaCalendarAlt, FaShoppingCart, FaExclamationTriangle } from 'react-icons/fa';
+import { FaBoxOpen, FaChartLine, FaCalendarAlt, FaShoppingCart, FaExclamationTriangle, FaClock, FaEdit } from 'react-icons/fa';
 import { useStore } from '../context/StoreContext';
-// Importações de Serviços e Autenticação Reais
 import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
 import SalesChart from './SalesChart';
 import VendasTempoReal from './VendasTempoReal';
 
-// Componente KpiCard
-const KpiCard = ({ title, value, icon, className }) => (
-    <div className={Styles.kpiCard + ' ' + className}>
-        <div className={Styles.cardContent}>
-            <h3>{title}</h3>
-            <span>{value}</span>
-        </div>
-        <div className={Styles.cardIcon}>
-            {icon}
-        </div>
-    </div>
-);
-
-const DashboardHome = ({ editMode }) => {
+const DashboardHome = ({ editMode, userData }) => {
     const { storeData, updateStoreData } = useStore();
     const [editingField, setEditingField] = useState(null);
     
     // ESTADOS REAIS DA API
     const [pedidosBanco, setPedidosBanco] = useState([]);
     const [loading, setLoading] = useState(true);
-    const confeiteiroId = AuthService.getUserId();
+    const [confeiteiroId, setConfeiteiroId] = useState(null);
 
-    // 🟢 PADRONIZADO COM A API JAVA: Puxa exatamente as propriedades do banco
-    const [displayStoreData, setDisplayStoreData] = useState(() => {
-        const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        return {
-            ...storeData,
-            nomeConfeiteiro: savedUser.nome || 'Confeiteiro',
-            name: savedUser.loja?.nomeFantasia || 'Minha Confeitaria', // 🌟 Corrigido para corresponder ao @Entity Loja (nomeFantasia)
-            description: savedUser.loja?.descricao || storeData.description, // 🌟 Corrigido para mapear loja.descricao
-            email: savedUser.email || '',
-            phone: savedUser.telefone || '',
-            address: savedUser.loja?.endereco || '' // 🌟 Corrigido para mapear loja.endereco
-        };
+    // 1. Garante a captura do ID do Confeiteiro de forma segura
+    useEffect(() => {
+        const id = AuthService.getUserId();
+        if (id) {
+            setConfeiteiroId(id);
+        }
+    }, []);
+
+    // 2. ESTADO INICIAL BASEADO NAS PROPS REAIS DO PAI OU FALLBACK
+    const [displayStoreData, setDisplayStoreData] = useState({
+        nomeConfeiteiro: 'Confeiteiro',
+        name: 'Minha Confeitaria', 
+        description: 'Adicione uma descrição para a sua loja.', 
+        email: '',
+        phone: '',
+        address: '' 
     });
 
-    // 1. CARREGAR DADOS REAIS DO BACKEND
+    // 3. CARREGAR DADOS DE PEDIDOS DO BACKEND (Dispara assim que o ID for validado)
     useEffect(() => {
         const buscarDadosDashboard = async () => {
             try {
                 setLoading(true);
-                // Busca a lista consolidada de pedidos deste confeiteiro no Banco de Dados
+                console.log("Buscando fila de trabalho para o confeiteiro:", confeiteiroId);
                 const dados = await OrderService.getFilaTrabalho(confeiteiroId);
                 setPedidosBanco(dados || []);
             } catch (error) {
@@ -63,43 +53,47 @@ const DashboardHome = ({ editMode }) => {
 
         if (confeiteiroId) {
             buscarDadosDashboard();
+        } else {
+            // Se não tem ID ainda, não deixa a tela travada no loading para sempre
+            setLoading(false);
         }
     }, [confeiteiroId]);
 
-    // Sincroniza em tempo de execução quando o localStorage ou contexto mudar
+    // 4. SINCRONIZAR PROPS EM TEMPO REAL (Evita que o localStorage antigo sobrescreva o banco)
     useEffect(() => {
         const recompute = () => {
             const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            // Arquitetura: Prioriza StoreContext para evitar conflitos com LojaContext
+            const lojaObjeto = storeData || savedUser.loja || {};
+
+            // Se o pai passou a loja direto como string, usamos ela, senão pegamos o nomeFantasia do objeto
+            const nomeLojaValido = typeof userData?.loja === 'string' 
+                ? userData.loja 
+                : (lojaObjeto.nomeFantasia || 'Minha Confeitaria');
+
             setDisplayStoreData({
-                ...storeData,
-                nomeConfeiteiro: savedUser.nome || 'Confeiteiro',
-                name: savedUser.loja?.nomeFantasia || 'Minha Confeitaria', // 🌟 Alinhado com o Java
-                description: savedUser.loja?.descricao || storeData.description, // 🌟 Alinhado com o Java
-                email: savedUser.email || '',
-                phone: savedUser.telefone || '',
-                address: savedUser.loja?.endereco || '' // 🌟 Alinhado com o Java
+                nomeConfeiteiro: userData?.nome || savedUser.nome || 'Confeiteiro',
+                name: nomeLojaValido, 
+                description: lojaObjeto.descricao || 'Adicione uma descrição para a sua loja.', 
+                email: userData?.email || savedUser.email || '',
+                phone: lojaObjeto.telefone || savedUser.telefone || '',
+                address: lojaObjeto.endereco || '' 
             });
         };
 
         recompute();
         window.addEventListener('localStorageUpdate', recompute);
         return () => window.removeEventListener('localStorageUpdate', recompute);
-    }, [storeData]);
+    }, [storeData, userData]);
 
     // 2. PROCESSAMENTO MATEMÁTICO REAL DOS PEDIDOS DO BANCO
     const kpisCalculados = React.useMemo(() => {
-        const hojeStr = new Date().toISOString().split('T')[0];
-
-        // Filtra pedidos criados na data de hoje
-        const pedidosDeHoje = pedidosBanco.filter(p => {
-            if (!p.dataEntregaAgendada) return false; 
-            return p.dataEntregaAgendada.startsWith(hojeStr);
-        });
+        // const hojeStr = new Date().toISOString().split('T')[0];
 
         const novosEPendentes = pedidosBanco.filter(p => p.status === 'NOVO' || p.status === 'PENDENTE');
         const agendadosProximos = pedidosBanco.filter(p => p.agendado === true);
         
-        // Calcula o faturamento somando o campo correto: valorPedido
         const totalVendasHoje = pedidosBanco
             .filter(p => p.status !== 'CANCELADO')
             .reduce((acc, p) => acc + (p.valorPedido || 0), 0);
@@ -107,17 +101,16 @@ const DashboardHome = ({ editMode }) => {
         const ticketMedio = pedidosBanco.length > 0 ? (totalVendasHoje / pedidosBanco.length) : 0;
 
         return {
-            pedidosHoje: pedidosBanco.length, // Total geral na fila
+            pedidosHoje: pedidosBanco.length,
             pedidosPendentesCount: novosEPendentes.length,
             vendasHojeValor: totalVendasHoje,
             ticketMedioValor: ticketMedio,
             agendamentosContagem: agendadosProximos.length,
-            listaRecentes: pedidosBanco.slice(0, 5), // Pega os últimos 5 cadastrados
+            listaRecentes: pedidosBanco.slice(0, 5),
             listaAgendados: agendadosProximos.slice(0, 3)
         };
     }, [pedidosBanco]);
 
-    // Mock estruturado apenas para o gráfico semanal aceitar
     const dadosGraficoVendas = [
         { name: 'Seg', vendas: kpisCalculados.vendasHojeValor * 0.1 },
         { name: 'Ter', vendas: kpisCalculados.vendasHojeValor * 0.3 },
@@ -152,7 +145,7 @@ const DashboardHome = ({ editMode }) => {
         
         return (
             <span className={`${className} ${Styles.editable}`} onClick={() => setEditingField(field)}>
-                value <FaEdit size={12} className={Styles.editIcon} />
+                {value} <FaEdit size={12} className={Styles.editIcon} />
             </span>
         );
     };
@@ -187,7 +180,7 @@ const DashboardHome = ({ editMode }) => {
                 </div>
             </div>
             
-            {/* GRID DE KPIS TOTALMENTE CONFIGURADO COM ATRIBUTOS DO JAVA */}
+            {/* GRID DE KPIS */}
             <div className={Styles.kpiGrid}>
                 <div className={Styles.kpiCard + ' ' + Styles.pedidosCard}>
                     <div className={Styles.cardContent}>
@@ -195,9 +188,7 @@ const DashboardHome = ({ editMode }) => {
                         <span className={Styles.kpiValue}>{kpisCalculados.pedidosHoje}</span>
                         <small>{kpisCalculados.pedidosPendentesCount} pendentes</small>
                     </div>
-                    <div className={Styles.cardIcon}>
-                        <FaBoxOpen />
-                    </div>
+                    <div className={Styles.cardIcon}><FaBoxOpen /></div>
                 </div>
                 
                 <div className={Styles.kpiCard + ' ' + Styles.vendasCard}>
@@ -206,9 +197,7 @@ const DashboardHome = ({ editMode }) => {
                         <span className={Styles.kpiValue}>R$ {kpisCalculados.vendasHojeValor.toFixed(2)}</span>
                         <small>Ticket médio: R$ {kpisCalculados.ticketMedioValor.toFixed(2)}</small>
                     </div>
-                    <div className={Styles.cardIcon}>
-                        <FaChartLine />
-                    </div>
+                    <div className={Styles.cardIcon}><FaChartLine /></div>
                 </div>
                 
                 <div className={Styles.kpiCard + ' ' + Styles.clientesCard}>
@@ -217,9 +206,7 @@ const DashboardHome = ({ editMode }) => {
                         <span className={Styles.kpiValue}>{pedidosBanco.length > 0 ? 'Ativo' : '0'}</span>
                         <small>Sincronizado via HTTP</small>
                     </div>
-                    <div className={Styles.cardIcon}>
-                        <FaShoppingCart />
-                    </div>
+                    <div className={Styles.cardIcon}><FaShoppingCart /></div>
                 </div>
                 
                 <div className={Styles.kpiCard + ' ' + Styles.agendamentosCard}>
@@ -228,9 +215,7 @@ const DashboardHome = ({ editMode }) => {
                         <span className={Styles.kpiValue}>{kpisCalculados.agendamentosContagem}</span>
                         <small>Pedidos agendados no banco</small>
                     </div>
-                    <div className={Styles.cardIcon}>
-                        <FaCalendarAlt />
-                    </div>
+                    <div className={Styles.cardIcon}><FaCalendarAlt /></div>
                 </div>
             </div>
             
@@ -240,7 +225,6 @@ const DashboardHome = ({ editMode }) => {
             </div>
 
             <div className={Styles.dashboardGrid}>
-                {/* LISTAGEM CORRIGIDA PARA LER OS OBJETOS DA SUA ENTITY PEDIDO */}
                 <div className={Styles.recentActivity}>
                     <h3>Pedidos Recentes (API)</h3>
                     <ul className={Styles.pedidosList}>
@@ -261,7 +245,6 @@ const DashboardHome = ({ editMode }) => {
                     </ul>
                 </div>
                 
-                {/* PRÓXIMOS AGENDAMENTOS MAPPED */}
                 <div className={Styles.upcomingEvents}>
                     <h3>Próximos Agendamentos</h3>
                     <div className={Styles.eventsList}>
@@ -284,7 +267,7 @@ const DashboardHome = ({ editMode }) => {
                     <h3>Resumo Financeiro</h3>
                     <div className={Styles.financialItem}>
                         <span>Total Líquido Estimado:</span>
-                        <strong>R$ {(kpisCalculados.vendasHojeValor * 0.7) .toFixed(2)}</strong>
+                        <strong>R$ {(kpisCalculados.vendasHojeValor * 0.7).toFixed(2)}</strong>
                     </div>
                     <div className={Styles.financialItem}>
                         <span>Faturamento Bruto Total:</span>
