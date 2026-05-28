@@ -1,89 +1,146 @@
 /* eslint-disable react-refresh/only-export-components */
-// src/DoceLivery/Context/CartContext.js
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
-// 1. Cria o Objeto Contexto
 export const CartContextStore = createContext(null);
 
-// 2. Componente Provider que gerencia o estado do carrinho
 export const CartProviderStore = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
+    const [isClearingCart, setIsClearingCart] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
-    const addItemToCart = useCallback((product, storeInfo, quantity = 1) => {
-        setCartItems(prevItems => {
-            const existingItem = prevItems.find(item => item.id === product.id);
-            if (existingItem) {
-                return prevItems.map(item =>
-                    item.id === product.id 
-                    ? { ...item, quantity: item.quantity + quantity }
-                    : item
-                );
-            }
-            return [...prevItems, { ...product, storeInfo, quantity }];
-        });
+    const addItemToCart = useCallback((itemToAdd, newStore, quantity = 1) => {
+        if (cartItems.length > 0 && activeStore && newStore && activeStore.id !== newStore.id) {
+            setIsClearingCart({ newItem: { ...itemToAdd, quantity }, newStore });
+            return;
+        }
+
+        const existingItemIndex = cartItems.findIndex(item => item.id === itemToAdd.id);
+        let newItems;
+        
+        if (existingItemIndex > -1) {
+            newItems = cartItems.map((item, index) =>
+                index === existingItemIndex ? { ...item, quantity: item.quantity + quantity } : item
+            );
+        } else {
+            const storeId = newStore ? newStore.id : (activeStore ? activeStore.id : null);
+            const newItem = { ...itemToAdd, quantity, storeId };
+            newItems = [...cartItems, newItem];
+        }
+        
+        if (cartItems.length === 0 && newStore) {
+            setActiveStore(newStore);
+        }
+        
+        setCartItems(newItems);
+    }, [cartItems, activeStore]);
+
+    const removeItemFromCart = useCallback((itemId) => {
+        const existingItem = cartItems.find(item => item.id === itemId);
+        if (!existingItem) return;
+
+        let newItems;
+        if (existingItem.quantity > 1) {
+            newItems = cartItems.map(item =>
+                item.id === itemId ? { ...item, quantity: item.quantity - 1 } : item
+            );
+        } else {
+            newItems = cartItems.filter(item => item.id !== itemId);
+        }
+        
+        setCartItems(newItems);
+        
+        if (newItems.length === 0) {
+            setActiveStore(null);
+        }
+    }, [cartItems]);
+
+    const removeAllOfItem = useCallback((itemId) => {
+        const newItems = cartItems.filter(item => item.id !== itemId);
+        setCartItems(newItems);
+        
+        if (newItems.length === 0) {
+            setActiveStore(null);
+        }
+    }, [cartItems]);
+
+    const clearCart = useCallback(() => {
+        setCartItems([]);
+        setActiveStore(null);
+        setIsClearingCart(false);
     }, []);
 
-    const removeItemFromCart = useCallback((productId) => {
-        setCartItems(prevItems => {
-            const existingItem = prevItems.find(item => item.id === productId);
-            if (existingItem && existingItem.quantity > 1) {
-                return prevItems.map(item =>
-                    item.id === productId 
-                    ? { ...item, quantity: item.quantity - 1 }
-                    : item
-                );
-            }
-            return prevItems.filter(item => item.id !== productId);
-        });
-    }, []);
+    const confirmClearCart = useCallback(() => {
+        if (isClearingCart) {
+            const { newItem, newStore } = isClearingCart;
+            setActiveStore(newStore);
+            setCartItems([{ ...newItem, storeId: newStore.id }]);
+            setIsClearingCart(false);
+        }
+    }, [isClearingCart]);
 
-    const removeAllOfItem = useCallback((productId) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    const cancelClearCart = useCallback(() => {
+        setIsClearingCart(false);
     }, []);
-
-    const clearCart = () => setCartItems([]);
 
     const toggleCart = useCallback(() => {
         setIsCartOpen(prev => !prev);
     }, []);
 
-    const value = useMemo(() => ({
+    const finalizarPedido = useCallback((onVendaFinalizada) => {
+        if (cartItems.length > 0) {
+            const valorTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+            setCartItems([]);
+            setActiveStore(null);
+            setIsClearingCart(false);
+            if (onVendaFinalizada) {
+                onVendaFinalizada(valorTotal);
+            }
+            return true;
+        }
+        return false;
+    }, [cartItems]);
+
+    const totalItems = useMemo(() => {
+        return cartItems.reduce((total, item) => total + item.quantity, 0);
+    }, [cartItems]);
+
+    const totalPrice = useMemo(() => {
+        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    }, [cartItems]);
+
+    const contextValue = useMemo(() => ({
         cartItems,
+        activeStore,
+        isClearingCart,
+        isCartOpen,
+        totalItems,
+        totalPrice,
         addItemToCart,
         removeItemFromCart,
         removeAllOfItem,
         clearCart,
-        activeStore,
-        setActiveStore,
-        isCartOpen,
-        toggleCart
+        confirmClearCart,
+        cancelClearCart,
+        toggleCart,
+        finalizarPedido
     }), [
-        cartItems, 
-        addItemToCart, 
-        removeItemFromCart, 
-        removeAllOfItem, 
-        activeStore, 
-        setActiveStore,
-        isCartOpen, 
-        toggleCart
+        cartItems, activeStore, isClearingCart, isCartOpen, totalItems, totalPrice,
+        addItemToCart, removeItemFromCart, removeAllOfItem, clearCart, confirmClearCart,
+        cancelClearCart, toggleCart, finalizarPedido
     ]);
 
     return (
-        <CartContextStore.Provider value={value}>
+        <CartContextStore.Provider value={contextValue}>
             {children}
         </CartContextStore.Provider>
     );
 };
 
-// 2. Hook personalizado para consumir o Contexto
 export const useCartStore = () => {
     const context = useContext(CartContextStore);
-    
     if (!context) {
         throw new Error('useCartStore deve ser usado dentro de um CartProviderStore');
     }
-    
     return context;
 };

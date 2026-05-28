@@ -30,7 +30,7 @@ class AuthService {
         localStorage.setItem('user', JSON.stringify(u));
 
         if (u.tipo || tipoDefault) localStorage.setItem('userType', ((u.tipo || tipoDefault) + '').toLowerCase());
-        const nomeUsuario = u.nome || u.nomeConfeiteiro || u.userName || u.nomeLoja || u.nomeFantasia || '';
+        const nomeUsuario = u.nome || u.nomeConfeiteiro || u.userName || u.nomeLoja || u.nomeFantasia || u.loja?.nomeFantasia || '';
         if (nomeUsuario) localStorage.setItem('userName', nomeUsuario);
         if (u.nomeConfeiteiro) localStorage.setItem('nomeConfeiteiro', u.nomeConfeiteiro);
 
@@ -56,7 +56,7 @@ class AuthService {
         if (u.uf || u.estado) localStorage.setItem('userUf', u.uf || u.estado);
 
         // Identificador
-        const id = u.id || u.idConfeiteiro || u.idCliente || u.idEntregador || u.idUsuario || u.userId;
+        const id = u.id || u.idConfeiteiro || u.idCliente || u.idEntregador || u.idUsuario || u.userId || u.confeiteiroId || u.loja?.id;
         if (id) localStorage.setItem('userId', id);
 
         // armazenar objeto completo do confeiteiro/loja para UI quando fizer sentido
@@ -99,7 +99,9 @@ class AuthService {
     try {
       const response = await axios.post(`http://localhost:8080/api/auth/login`, credentials);
       if (response.data && response.data.token) {
+        // Corrigido para gravar tanto em 'token' quanto em 'userToken' evitando falha de autenticação no app
         localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userToken', response.data.token);
         
         // 🟢 Salva o objeto exatamente como veio do banco de dados Java
         const usuarioGeral = response.data.user || response.data;
@@ -166,26 +168,6 @@ class AuthService {
       } catch (e) {
         console.warn('Erro ao verificar/mesclar dados de loja:', e);
       }
-
-      // 🟢 CORREÇÃO: Mapeia o JSON para a estrutura que o seu Header e Tabelas esperam
-      // const usuarioFormatado = {
-      //   id: profileData.id,
-      //   nome: profileData.nome,
-      //   email: profileData.email,
-      //   telefone: profileData.telefone,
-      //   // Facilita o acesso direto no Dashboard
-      //   nomeLoja: profileData.loja?.nomeFantasia || profileData.nomeLoja || "Minha Confeitaria",
-      //   fotoLoja: profileData.loja?.imagem || profileData.loja?.imagemUrl || null,
-      //   // Garantimos que o objeto 'loja' fique no lugar certo para o Front ler
-      //   loja: profileData.loja ? {
-      //     id: profileData.loja.id,
-      //     nomeFantasia: profileData.loja.nomeFantasia,
-      //     descricao: profileData.loja.descricao,
-      //     cnpj: profileData.loja.cnpj,
-      //     telefone: profileData.loja.telefone,
-      //     endereco: profileData.loja.endereco
-      //   } : null
-      // };
 
       // 🟢 Salva o objeto bruto vindo do profileData para garantir compatibilidade total com o Java
       localStorage.setItem('user', JSON.stringify(profileData));

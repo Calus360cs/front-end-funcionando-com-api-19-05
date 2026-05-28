@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 
 const StoreContext = createContext();
 
@@ -55,31 +55,35 @@ export const StoreProvider = ({ children }) => {
         }
     ]);
 
-    const updateStoreData = (newData) => {
+    // 🟢 CORREÇÃO PASSO 2: Funções memorizadas com useCallback para quebrar ciclos de loops em useEffects externos
+    const updateStoreData = useCallback((newData) => {
         setStoreData(prev => ({ ...prev, ...newData }));
-    };
+    }, []);
 
-    const addProduct = (product) => {
+    const addProduct = useCallback((product) => {
         setProducts(prev => [...prev, { ...product, id: Date.now() }]);
-    };
+    }, []);
 
-    const updateProduct = (id, updatedProduct) => {
+    const updateProduct = useCallback((id, updatedProduct) => {
         setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedProduct } : p));
-    };
+    }, []);
 
-    const deleteProduct = (id) => {
+    const deleteProduct = useCallback((id) => {
         setProducts(prev => prev.filter(p => p.id !== id));
-    };
+    }, []);
+
+    // 🟢 OTIMIZAÇÃO EXTRA: Memorização do objeto do valor do contexto para evitar renderizações desnecessárias
+    const contextValue = useMemo(() => ({
+        storeData,
+        products,
+        updateStoreData,
+        addProduct,
+        updateProduct,
+        deleteProduct
+    }), [storeData, products, updateStoreData, addProduct, updateProduct, deleteProduct]);
 
     return (
-        <StoreContext.Provider value={{
-            storeData,
-            products,
-            updateStoreData,
-            addProduct,
-            updateProduct,
-            deleteProduct
-        }}>
+        <StoreContext.Provider value={contextValue}>
             {children}
         </StoreContext.Provider>
     );

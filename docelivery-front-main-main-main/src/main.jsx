@@ -1,25 +1,24 @@
 // src/main.jsx
-
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from 'react-router-dom'; // <--- Adicione esta linha
+import { BrowserRouter } from 'react-router-dom';
 import App from "./App.jsx";
 import './index.css';
 
-
-// ------------------------------------------------------------------
-// CORREÇÃO APLICADA AQUI:
-// O caminho agora começa com './' (a pasta atual, 'src/') e segue para as subpastas.
-// Assumindo que o Contexto está em src/DoceLivery/context/
+// 1. Única importação do Provedor do Carrinho
 import { CartProviderStore } from "./DoceLivery/context/CartProviderStore.jsx";
-// ------------------------------------------------------------------
 
+// 2. ÚNICA importação do Provedor do Dashboard
+import { DashboardProvider } from "./DoceLivery/context/DashboardContext.jsx";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        {/* Agora o componente CartProviderStore deve ser encontrado corretamente */}
-       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-  <App />
-</BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <CartProviderStore>
+                <DashboardProvider>
+                    <App />
+                </DashboardProvider>
+            </CartProviderStore>
+        </BrowserRouter>
     </React.StrictMode>,
 );

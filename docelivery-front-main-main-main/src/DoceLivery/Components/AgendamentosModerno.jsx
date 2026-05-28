@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IoCalendar, IoTime, IoLocation, IoNotifications, IoAdd, IoEye, IoAlert, IoClose } from 'react-icons/io5';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -64,7 +64,7 @@ const AgendamentosModerno = () => {
                 itens: [
                     {
                         produto: { id: parseInt(novaEncomenda.produtoId || 1) },
-                        quantidade: 1
+                        quantity: 1
                     }
                 ]
             };

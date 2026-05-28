@@ -1,40 +1,62 @@
-import React, { useState } from 'react';
-import { IoTrendingUp, IoTrendingDown, IoCard, IoTime, IoCalendar, IoStatsChart } from 'react-icons/io5';
-import { useDashboard } from '../context/DashboardContext';
+import React, { useState, useEffect } from 'react';
+import { IoTrendingUp, IoTrendingDown, IoCard, IoStatsChart } from 'react-icons/io5';
+// 🛠️ IMPORT AJUSTADO: Adicionado a extensão .jsx explícita para evitar problemas no ecossistema do Vite
+import { useDashboard } from '../context/DashboardContext.jsx';
 import SalesChart from './SalesChart';
 import Styles from './FinanceiroModerno.module.css';
 
 const FinanceiroModerno = () => {
-    const { dashboardData, getVendasSemanais } = useDashboard();
+    // Consome o contexto do dashboard
+    const { dashboardData, getVendasSemanais, carregarDadosFinanceiros } = useDashboard();
     const [periodoSelecionado, setPeriodoSelecionado] = useState('mes');
-    
+
+    // Executa a carga com o ID do confeiteiro logado
+    useEffect(() => {
+        const idConfeiteiroLogado = 10005; // ID real mapeado nos logs do seu banco
+        if (typeof carregarDadosFinanceiros === 'function') {
+            carregarDadosFinanceiros(idConfeiteiroLogado);
+        }
+    }, [carregarDadosFinanceiros]);
+
+    // ----------------------------------------------------------------
+    // BLINDAGEM DE FALLBACKS (Garante valores seguros mesmo se a API falhar)
+    // ----------------------------------------------------------------
     const dadosFinanceiros = {
-        rendimentoMes: 4520.50,
-        totalPedidos: 85,
-        rendimentoMedio: 53.18,
-        pedidosPendentes: 5,
-        vendasTotais: 12500.00,
-        despesasTotais: 3500.00,
-        lucro: 9000.00,
-        crescimentoMes: 12.5,
-        ticketMedio: 42.30
+        rendimentoMes: dashboardData?.financeiro?.vendasMes || 0,
+        totalPedidos: dashboardData?.pedidos?.concluidos || dashboardData?.pedidos?.hoje || 0,
+        ticketMedio: dashboardData?.financeiro?.ticketMedio || 0,
+        pedidosPendentes: dashboardData?.pedidos?.pendentes || 0,
+        vendasTotais: dashboardData?.financeiro?.vendasMes || 0,
+        despesasTotais: dashboardData?.financeiro?.despesasTotais || 0,
+        lucro: (dashboardData?.financeiro?.vendasMes || 0) - (dashboardData?.financeiro?.despesasTotais || 0),
+        crescimentoMes: dashboardData?.financeiro?.crescimentoMes || 0
     };
 
-    const dadosVendasMensais = [
-        { month: 'Jan', total: 3200 },
-        { month: 'Fev', total: 3800 },
-        { month: 'Mar', total: 4100 },
-        { month: 'Abr', total: 3900 },
-        { month: 'Mai', total: 4520 },
-        { month: 'Jun', total: 4800 }
+    const dadosVendasMensais = dashboardData?.financeiro?.vendasMensais || [
+        { month: 'Jan', total: 0 },
+        { month: 'Fev', total: 0 },
+        { month: 'Mar', total: 0 },
+        { month: 'Abr', total: 0 },
+        { month: 'Mai', total: 0 },
+        { month: 'Jun', total: 0 }
     ];
 
-    const transacoesRecentes = [
-        { id: 1, tipo: 'receita', descricao: 'Bolo de Aniversário', valor: 85.00, data: '2024-01-15' },
-        { id: 2, tipo: 'despesa', descricao: 'Ingredientes', valor: -120.00, data: '2024-01-14' },
-        { id: 3, tipo: 'receita', descricao: 'Kit Festa', valor: 150.00, data: '2024-01-14' },
-        { id: 4, tipo: 'receita', descricao: '12 Cupcakes', valor: 48.00, data: '2024-01-13' }
-    ];
+    // Mapeia as propriedades exatas que a API de movimentações do Java entrega
+    const transacoesRecentes = dashboardData?.pedidos?.recentes?.map(movimentacao => {
+        const dataFormatada = movimentacao.dataLancamento 
+            ? new Date(movimentacao.dataLancamento).toLocaleDateString('pt-BR')
+            : new Date().toLocaleDateString('pt-BR');
+
+        return {
+            id: movimentacao.id,
+            tipo: movimentacao.tipo?.toLowerCase() || 'receita',
+            descricao: movimentacao.descricao || 'Movimentação sem descrição',
+            valor: movimentacao.valor || 0,
+            data: dataFormatada
+        };
+    }) || [];
+
+    const vendasSemanaisSeguras = typeof getVendasSemanais === 'function' ? getVendasSemanais() : [];
 
     return (
         <div className={Styles.financeiroModerno}>
@@ -67,9 +89,7 @@ const FinanceiroModerno = () => {
 
             <div className={Styles.kpiGrid}>
                 <div className={`${Styles.kpiCard} ${Styles.rendimento}`}>
-                    <div className={Styles.kpiIcon}>
-                        <IoTrendingUp size={24} />
-                    </div>
+                    <div className={Styles.kpiIcon}><IoTrendingUp size={24} /></div>
                     <div className={Styles.kpiContent}>
                         <h3>Rendimento do Mês</h3>
                         <span className={Styles.kpiValue}>R$ {dadosFinanceiros.rendimentoMes.toFixed(2)}</span>
@@ -81,9 +101,7 @@ const FinanceiroModerno = () => {
                 </div>
 
                 <div className={`${Styles.kpiCard} ${Styles.pedidos}`}>
-                    <div className={Styles.kpiIcon}>
-                        <IoCard size={24} />
-                    </div>
+                    <div className={Styles.kpiIcon}><IoCard size={24} /></div>
                     <div className={Styles.kpiContent}>
                         <h3>Total de Pedidos</h3>
                         <span className={Styles.kpiValue}>{dadosFinanceiros.totalPedidos}</span>
@@ -94,9 +112,7 @@ const FinanceiroModerno = () => {
                 </div>
 
                 <div className={`${Styles.kpiCard} ${Styles.ticket}`}>
-                    <div className={Styles.kpiIcon}>
-                        <IoStatsChart size={24} />
-                    </div>
+                    <div className={Styles.kpiIcon}><IoStatsChart size={24} /></div>
                     <div className={Styles.kpiContent}>
                         <h3>Ticket Médio</h3>
                         <span className={Styles.kpiValue}>R$ {dadosFinanceiros.ticketMedio.toFixed(2)}</span>
@@ -107,14 +123,12 @@ const FinanceiroModerno = () => {
                 </div>
 
                 <div className={`${Styles.kpiCard} ${Styles.lucro}`}>
-                    <div className={Styles.kpiIcon}>
-                        <IoTrendingUp size={24} />
-                    </div>
+                    <div className={Styles.kpiIcon}><IoTrendingUp size={24} /></div>
                     <div className={Styles.kpiContent}>
                         <h3>Lucro Líquido</h3>
                         <span className={Styles.kpiValue}>R$ {dadosFinanceiros.lucro.toFixed(2)}</span>
                         <div className={Styles.kpiMeta}>
-                            <span>72% margem</span>
+                            <span>Margem Calculada</span>
                         </div>
                     </div>
                 </div>
@@ -126,7 +140,11 @@ const FinanceiroModerno = () => {
                         <h3>Vendas da Semana</h3>
                         <span>Últimos 7 dias</span>
                     </div>
-                    <SalesChart salesData={getVendasSemanais()} />
+                    <SalesChart 
+                        salesData={vendasSemanaisSeguras} 
+                        title="Vendas Semanais - Tempo Real" 
+                        labelDataset="Faturamento Diário (R$)"
+                    />
                 </div>
 
                 <div className={Styles.chartCard}>
@@ -134,7 +152,11 @@ const FinanceiroModerno = () => {
                         <h3>Vendas Mensais</h3>
                         <span>Últimos 6 meses</span>
                     </div>
-                    <SalesChart salesData={dadosVendasMensais} />
+                    <SalesChart 
+                        salesData={dadosVendasMensais} 
+                        title="Acompanhamento Mensal Consolidado" 
+                        labelDataset="Faturamento Mensal (R$)"
+                    />
                 </div>
             </div>
 
@@ -167,17 +189,21 @@ const FinanceiroModerno = () => {
                 <div className={Styles.transacoesRecentes}>
                     <h3>Transações Recentes</h3>
                     <div className={Styles.transacoesList}>
-                        {transacoesRecentes.map(transacao => (
-                            <div key={transacao.id} className={Styles.transacaoItem}>
-                                <div className={Styles.transacaoInfo}>
-                                    <span className={Styles.transacaoDescricao}>{transacao.descricao}</span>
-                                    <span className={Styles.transacaoData}>{transacao.data}</span>
+                        {transacoesRecentes.length === 0 ? (
+                            <p className={Styles.semTransacoes}>Nenhum pedido recente registrado.</p>
+                        ) : (
+                            transacoesRecentes.map(transacao => (
+                                <div key={transacao.id} className={Styles.transacaoItem}>
+                                    <div className={Styles.transacaoInfo}>
+                                        <span className={Styles.transacaoDescricao}>{transacao.descricao}</span>
+                                        <span className={Styles.transacaoData}>{transacao.data}</span>
+                                    </div>
+                                    <span className={`${Styles.transacaoValor} ${transacao.tipo === 'saida' ? Styles.despesa : Styles.receita}`}>
+                                        {transacao.tipo === 'saida' ? '- ' : '+ '}R$ {transacao.valor.toFixed(2)}
+                                    </span>
                                 </div>
-                                <span className={`${Styles.transacaoValor} ${Styles[transacao.tipo]}`}>
-                                    {transacao.valor > 0 ? '+' : ''}R$ {Math.abs(transacao.valor).toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,15 +1,15 @@
-// src/Components/DashboardHome.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Styles from '../Components/DashboardHome.module.css';
 import { FaBoxOpen, FaChartLine, FaCalendarAlt, FaShoppingCart, FaExclamationTriangle, FaClock, FaEdit } from 'react-icons/fa';
 import { useStore } from '../context/StoreContext';
 import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
+import ConfeiteiroService from '../services/confeiteiroService'; 
 import SalesChart from './SalesChart';
-import VendasTempoReal from './VendasTempoReal';
+import VendasTempoReal from '../Components/VendasTempoReal';
 
 const DashboardHome = ({ editMode, userData }) => {
+    // 🟢 Mantemos o useStore caso queira usar as outras propriedades, mas NÃO vamos disparar o updateStoreData no fluxo automático
     const { storeData, updateStoreData } = useStore();
     const [editingField, setEditingField] = useState(null);
     
@@ -18,81 +18,99 @@ const DashboardHome = ({ editMode, userData }) => {
     const [loading, setLoading] = useState(true);
     const [confeiteiroId, setConfeiteiroId] = useState(null);
 
-    // 1. Garante a captura do ID do Confeiteiro de forma segura
-    useEffect(() => {
-        const id = AuthService.getUserId();
-        if (id) {
-            setConfeiteiroId(id);
-        }
-    }, []);
+    // CONTROLE ANTILOOP: Impede que o efeito execute de forma concorrente
+    const requisicaoFeita = useRef(false);
 
-    // 2. ESTADO INICIAL BASEADO NAS PROPS REAIS DO PAI OU FALLBACK
+    // ESTADO INICIAL DOS DADOS DA LOJA/CONFEITEIRO (O que realmente renderiza na tela)
     const [displayStoreData, setDisplayStoreData] = useState({
-        nomeConfeiteiro: 'Confeiteiro',
-        name: 'Minha Confeitaria', 
-        description: 'Adicione uma descrição para a sua loja.', 
+        nomeConfeiteiro: '',
+        name: '', 
+        description: '', 
         email: '',
         phone: '',
         address: '' 
     });
 
-    // 3. CARREGAR DADOS DE PEDIDOS DO BACKEND (Dispara assim que o ID for validado)
+    // 1. Garante a captura do ID do Confeiteiro de forma segura
     useEffect(() => {
+        const id = AuthService.getUserId();
+        if (id) {
+            setConfeiteiroId(id);
+        } else {
+            setLoading(false);
+        }
+    }, []);
+
+    // 2. CARREGAR DADOS DO BANCO DE DADOS (Pedidos + Dados do Confeiteiro/Loja)
+    useEffect(() => {
+        if (!confeiteiroId || requisicaoFeita.current) return;
+
         const buscarDadosDashboard = async () => {
             try {
                 setLoading(true);
-                console.log("Buscando fila de trabalho para o confeiteiro:", confeiteiroId);
-                const dados = await OrderService.getFilaTrabalho(confeiteiroId);
-                setPedidosBanco(dados || []);
+                requisicaoFeita.current = true; 
+                
+                console.log("Buscando dados integrados para o confeiteiro ID:", confeiteiroId);
+                
+                const [dadosPedidos, dadosConfeiteiro] = await Promise.all([
+                    OrderService.getFilaTrabalho(confeiteiroId).catch(() => []),
+                    ConfeiteiroService.getConfeiteiro(confeiteiroId).catch(() => null)
+                ]);
+
+                setPedidosBanco(dadosPedidos || []);
+
+                if (dadosConfeiteiro) {
+                    console.log("Dados do Confeiteiro retornados do Banco:", dadosConfeiteiro);
+                    
+                    const dadosLocais = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+                    const usuarioLocal = JSON.parse(localStorage.getItem('user') || '{}');
+
+                    const lojaObjeto = (dadosConfeiteiro.loja && Object.keys(dadosConfeiteiro.loja).length > 0) 
+                        ? dadosConfeiteiro.loja 
+                        : (dadosLocais.loja || usuarioLocal.loja || {});
+
+                    // 🟢 CORREÇÃO DEFINTIVA: Atualizamos APENAS o estado visual interno do painel.
+                    // A linha que chamava "updateStoreData(dadosConfeiteiro.loja)" foi REMOVIDA daqui.
+                    setDisplayStoreData({
+                        nomeConfeiteiro: dadosConfeiteiro.nome || 'Confeiteiro',
+                        name: dadosConfeiteiro.loja?.nomeFantasia || lojaObjeto.nomeFantasia || dadosConfeiteiro.nomeFantasia || storeData?.name || 'Preencha o nome da sua Confeitaria',
+                        description: lojaObjeto.descricao || 'Clique em editar para adicionar uma descrição.',
+                        email: dadosConfeiteiro.email || '',
+                        phone: lojaObjeto.telefone || dadosConfeiteiro.telefone || '',
+                        address: lojaObjeto.endereco || dadosConfeiteiro.logradouro || dadosConfeiteiro.endereco || 'Endereço não cadastrado'
+                    });
+
+                } else {
+                    const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const savedDados = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
+                    const lojaObjeto = storeData || savedDados.loja || savedUser.loja || {};
+
+                    setDisplayStoreData({
+                        nomeConfeiteiro: userData?.nome || savedUser.nome || 'Confeiteiro',
+                        name: typeof userData?.loja === 'string' ? userData.loja : (lojaObjeto.name || 'Preencha o nome da sua Confeitaria'),
+                        description: lojaObjeto.description || 'Clique em editar para adicionar uma descrição.',
+                        email: userData?.email || savedUser.email || '',
+                        phone: lojaObjeto.phone || savedUser.telefone || '',
+                        address: userData?.endereco || lojaObjeto.address || 'Endereço não cadastrado'
+                    });
+                } 
+
             } catch (error) {
-                console.error("Erro ao alimentar o painel com a API:", error);
+                console.error("Erro crítico ao alimentar o painel com a API:", error);
+                requisicaoFeita.current = false; 
             } finally {
                 setLoading(false);
             }
         };
 
-        if (confeiteiroId) {
-            buscarDadosDashboard();
-        } else {
-            // Se não tem ID ainda, não deixa a tela travada no loading para sempre
-            setLoading(false);
-        }
-    }, [confeiteiroId]);
+        buscarDadosDashboard();
 
-    // 4. SINCRONIZAR PROPS EM TEMPO REAL (Evita que o localStorage antigo sobrescreva o banco)
-    useEffect(() => {
-        const recompute = () => {
-            const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            
-            // Arquitetura: Prioriza StoreContext para evitar conflitos com LojaContext
-            const lojaObjeto = storeData || savedUser.loja || {};
+    }, [confeiteiroId, userData]); 
 
-            // Se o pai passou a loja direto como string, usamos ela, senão pegamos o nomeFantasia do objeto
-            const nomeLojaValido = typeof userData?.loja === 'string' 
-                ? userData.loja 
-                : (lojaObjeto.nomeFantasia || 'Minha Confeitaria');
-
-            setDisplayStoreData({
-                nomeConfeiteiro: userData?.nome || savedUser.nome || 'Confeiteiro',
-                name: nomeLojaValido, 
-                description: lojaObjeto.descricao || 'Adicione uma descrição para a sua loja.', 
-                email: userData?.email || savedUser.email || '',
-                phone: lojaObjeto.telefone || savedUser.telefone || '',
-                address: lojaObjeto.endereco || '' 
-            });
-        };
-
-        recompute();
-        window.addEventListener('localStorageUpdate', recompute);
-        return () => window.removeEventListener('localStorageUpdate', recompute);
-    }, [storeData, userData]);
-
-    // 2. PROCESSAMENTO MATEMÁTICO REAL DOS PEDIDOS DO BANCO
-    const kpisCalculados = React.useMemo(() => {
-        // const hojeStr = new Date().toISOString().split('T')[0];
-
+    // 3. PROCESSAMENTO MATEMÁTICO REAL DOS PEDIDOS DO BANCO
+    const kpisCalculados = useMemo(() => {
         const novosEPendentes = pedidosBanco.filter(p => p.status === 'NOVO' || p.status === 'PENDENTE');
-        const agendadosProximos = pedidosBanco.filter(p => p.agendado === true);
+        const agendadosProximos = pedidosBanco.filter(p => p.agendado === true || p.status === 'AGENDADO');
         
         const totalVendasHoje = pedidosBanco
             .filter(p => p.status !== 'CANCELADO')
@@ -111,7 +129,7 @@ const DashboardHome = ({ editMode, userData }) => {
         };
     }, [pedidosBanco]);
 
-    const dadosGraficoVendas = [
+    const dadosGraficoVendas = useMemo(() => [
         { name: 'Seg', vendas: kpisCalculados.vendasHojeValor * 0.1 },
         { name: 'Ter', vendas: kpisCalculados.vendasHojeValor * 0.3 },
         { name: 'Qua', vendas: kpisCalculados.vendasHojeValor * 0.2 },
@@ -119,10 +137,36 @@ const DashboardHome = ({ editMode, userData }) => {
         { name: 'Sex', vendas: kpisCalculados.vendasHojeValor * 0.6 },
         { name: 'Sáb', vendas: kpisCalculados.vendasHojeValor * 0.9 },
         { name: 'Dom', vendas: kpisCalculados.vendasHojeValor }
-    ];
+    ], [kpisCalculados.vendasHojeValor]);
 
-    const handleEdit = (field, value) => {
-        updateStoreData({ [field]: value });
+    // O updateStoreData só roda aqui se você clicar manualmente para EDITAR o campo na tela
+    const handleEdit = async (field, value) => {
+        const novosDadosVisuais = { ...displayStoreData, [field]: value };
+        setDisplayStoreData(novosDadosVisuais);
+        
+        if (updateStoreData) {
+            updateStoreData({ [field]: value });
+        }
+
+        try {
+            if (confeiteiroId) {
+                const dadosParaAtualizar = {
+                    nome: field === 'nomeConfeiteiro' ? value : displayStoreData.nomeConfeiteiro,
+                    nomeLoja: field === 'name' ? value : displayStoreData.name,
+                    descricao: field === 'description' ? value : displayStoreData.description,
+                    telefone: field === 'phone' ? value : displayStoreData.phone,
+                    logradouro: field === 'address' ? value : displayStoreData.address,
+                    email: displayStoreData.email,
+                };
+
+                console.log("Enviando dados inline atualizados para o Service:", dadosParaAtualizar);
+                await ConfeiteiroService.atualizarPerfil(dadosParaAtualizar);
+                console.log("Banco de dados updated!");
+            }
+        } catch (err) {
+            console.error("Erro ao salvar edição em tempo real no banco:", err);
+        }
+        
         setEditingField(null);
     };
 
@@ -156,27 +200,18 @@ const DashboardHome = ({ editMode, userData }) => {
         <div className={Styles.dashboardHome}>
             <div className={Styles.welcomeSection}>
                 <h1>Bem-vindo de volta, {displayStoreData.nomeConfeiteiro}!</h1>
-                <p>Gerencie seus kits, produtos e pedidos da loja <strong>{displayStoreData.name || "não identificada"}</strong>.</p>
+                <p>Gerencie seus kits... da loja <strong>{typeof displayStoreData.name === 'object' ? displayStoreData.name?.nomeFantasia : displayStoreData.name}</strong></p>
                 <div className={Styles.storeInfo}>
                     <h3>
-                        <EditableField 
-                            field="name" 
+                        <EditableField
+                            field="name"
                             value={displayStoreData.name}
                             className={Styles.storeName}
                         />
                     </h3>
                     {displayStoreData.email && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📧 {displayStoreData.email}</p>}
                     {displayStoreData.phone && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📞 {displayStoreData.phone}</p>}
-                    {displayStoreData.address && displayStoreData.address !== 'Rua das Flores, 123 - Centro' && (
-                        <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {displayStoreData.address}</p>
-                    )}
-                    <p>
-                        <EditableField 
-                            field="description" 
-                            value={displayStoreData.description}
-                            className={Styles.storeDescription}
-                        />
-                    </p>
+                    {displayStoreData.address && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {displayStoreData.address}</p>}
                 </div>
             </div>
             

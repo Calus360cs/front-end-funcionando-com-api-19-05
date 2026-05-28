@@ -336,7 +336,7 @@ function PaginaCompleta() {
                 
                 <a href="/docelivery/entregador/login-entregador" target="_blank" rel="noopener noreferrer" className={Style.parceiroBtnModerno}>
                   <FontAwesomeIcon icon={faArrowRight} />
-                  Entrar no Painel
+                  Junte-se a Nós
                 </a>
               </div>
             </div>

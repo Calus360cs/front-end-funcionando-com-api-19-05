@@ -47,32 +47,45 @@ const PerfilLoja = () => {
                     if (usuario.loja?.id) {
                         setLojaIdReal(usuario.loja.id);
                     }
+                    const loja = usuario.loja || usuario;
 
                     // Tratamento seguro do endereço splitado
-                    const enderecoPartes = usuario.loja?.endereco ? usuario.loja.endereco.split(',') : [];
+                    const enderecoPartes = loja.endereco ? loja.endereco.split(',') : [];
                     const logradouroBase = enderecoPartes[0] || usuario.logradouro || '';
                     const numeroBase = enderecoPartes[1] ? enderecoPartes[1].trim() : '';
 
                     setFormData({
-                        nome: usuario.loja?.nomeFantasia || usuario.nomeLoja || usuario.nomeConfeitaria || usuario.nome || '',
+                        nome: loja.nomeFantasia || usuario.nomeLoja || usuario.nomeConfeitaria || usuario.nome || '',
                         email: usuario.email || '',
-                        telefone: usuario.loja?.telefone || usuario.telefone || '',
-                        cnpj: usuario.loja?.cnpj || usuario.cnpj || '',
-                        cep: usuario.loja?.cep || usuario.cep || '',
+                        telefone: loja.telefone || usuario.telefone || '',
+                        cnpj: loja.cnpj || usuario.cnpj || '',
+                        cep: loja.cep || usuario.cep || '',
                         logradouro: logradouroBase,
                         numero: numeroBase,
                         complemento: usuario.complemento || '',
-                        bairro: usuario.loja?.bairro || usuario.bairro || '',
-                        cidade: usuario.loja?.cidade || usuario.cidade || '',
-                        estado: usuario.loja?.uf || usuario.loja?.estado || usuario.uf || usuario.estado || '',
-                        descricao: usuario.loja?.descricao || usuario.descricao || '',
-                        imagem: usuario.loja?.fotoUrl || usuario.loja?.imagem || usuario.imagemUrl || usuario.imagem || '',
+                        bairro: loja.bairro || usuario.bairro || '',
+                        cidade: loja.cidade || usuario.cidade || '',
+                        estado: loja.uf || loja.estado || usuario.uf || usuario.estado || '',
+                        descricao: loja.descricao || usuario.descricao || '',
+                        imagem: loja.fotoUrl || loja.imagem || usuario.imagemUrl || usuario.imagem || '',
                     });
 
-                    if (usuario.loja?.horarioFuncionamento) {
-                        setHorarios(usuario.loja.horarioFuncionamento);
+                    if (loja.horarioFuncionamento) {
+                        setHorarios(loja.horarioFuncionamento);
                     } else if (dadosLoja?.horarioFuncionamento) {
                         setHorarios(dadosLoja.horarioFuncionamento);
+                    }
+
+                    // 🟢 Garante que o cabeçalho do Dashboard atualize com os dados vindos da API
+                    if (atualizarDadosLoja) {
+                        atualizarDadosLoja({
+                            nome: loja.nomeFantasia || usuario.nomeLoja || '',
+                            descricao: loja.descricao || '',
+                            cnpj: loja.cnpj || '',
+                            telefone: loja.telefone || '',
+                            endereco: loja.endereco || '',
+                            imagem: loja.fotoUrl || '',
+                        });
                     }
                 }
             } catch (error) {
@@ -139,7 +152,7 @@ const PerfilLoja = () => {
                                 ...prev,
                                 logradouro: data.logradouro || '',
                                 bairro: data.bairro || '',
-                                city: data.localidade || '', // Certifique-se se no seu estado é cidade ou city
+                                city: data.localidade || '', 
                                 cidade: data.localidade || '',
                                 estado: data.uf || '',
                             }));
@@ -165,7 +178,6 @@ const PerfilLoja = () => {
         let urlImagem = '';
         if (formData.imagem) {
             if (typeof formData.imagem === 'object') {
-                // Se o uploader salvou como objeto, tenta pegar a propriedade de URL interna
                 urlImagem = formData.imagem.url || formData.imagem.fotoUrl || '';
             } else {
                 urlImagem = formData.imagem;
@@ -175,11 +187,11 @@ const PerfilLoja = () => {
         // 2. Monta o payload limpando máscaras de CNPJ/Telefone e protegendo strings
         const dadosDaLoja = {
             nomeFantasia: formData.nome,
-            cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, // Envia apenas números
-            telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null, // Envia apenas números
+            cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, 
+            telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null, 
             descricao: formData.descricao || '',
             endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`,
-            fotoUrl: urlImagem // Agora garantido como String!
+            fotoUrl: urlImagem 
         };
 
         try {
@@ -208,10 +220,9 @@ const PerfilLoja = () => {
                 atualizarHorarioFuncionamento(horarios);
             }
             
-            // 2. Dispara o evento global para avisar o ConfeiteiroDashboard para reler o banco
             window.dispatchEvent(new Event('localStorageUpdate'));
             localStorage.setItem('nomeLoja', formData.nome);
-            alert("Perfil da loja atualizado com sucesso!");
+            alert("Perfil da loja updated com sucesso!");
         } catch (erro) {
             console.error(erro);
             alert("Erro ao atualizar perfil. Verifique os dados ou a conexão.");

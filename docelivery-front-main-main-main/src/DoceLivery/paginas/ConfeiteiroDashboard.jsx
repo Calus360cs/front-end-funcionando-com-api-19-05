@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Styles from './ConfeiteiroDashboard.module.css';
 import { IoHome, IoReceipt, IoRestaurant, IoStatsChart, IoCalendar, IoSettings, IoLogOut, IoNotifications, IoMenu } from 'react-icons/io5';
@@ -19,10 +19,18 @@ const ConfeiteiroDashboard = () => {
   const [storeOpen, setStoreOpen] = useState(true);
   
   const navigate = useNavigate();
-  const { dadosLoja } = useLoja(); // Pegando dados direto do contexto global
+  const { dadosLoja, atualizarDadosLoja } = useLoja(); // Pegando dados e função de atualização
+
+  // Trava para evitar loops nas requisições do useEffect de sincronização
+  const perfilBuscado = useRef(false);
 
   // Estado local para dados complementares do usuário (como o Nome do Confeiteiro)
-  const [userData, setUserData] = useState({ nome: 'Confeiteiro', loja: 'Minha Confeitaria', email: '', fotoLoja: '' });
+  const [userData, setUserData] = useState({
+    nome: 'Confeiteiro',
+    loja: { nomeFantasia: 'Minha Confeitaria', descricao: '', telefone: '', endereco: '' }, // 🟢 Agora é um objeto padrão!
+    email: '',
+    fotoLoja: ''
+  });
 
   const [businessHours, setBusinessHours] = useState({
     monday: { open: '08:00', close: '18:00', isOpen: true },
@@ -44,13 +52,15 @@ const ConfeiteiroDashboard = () => {
       // Normaliza se o objeto vier dentro de .user, .data ou na raiz
       const dadosReais = parsed.user || parsed.data || parsed;
 
-      const nomeConfeiteiro = dadosReais.nome || dadosReais.name || parsed.nome || 'Confeiteiro';
+      const nomeConfeiteiro = dadosReais.nome || dadosReais.nomeConfeiteiro || dadosReais.name || parsed.nome || 'Confeiteiro';
       
       // Varredura profunda para encontrar o nome da loja
       const nomeDaLoja = 
         dadosReais.loja?.nomeFantasia || 
         parsed.loja?.nomeFantasia || 
         dadosReais.nomeLoja || 
+        dadosReais.nomeFantasia ||
+        dadosReais.nomeConfeitaria ||
         parsed.nomeLoja || 
         'Minha Confeitaria';
 
@@ -71,10 +81,13 @@ const ConfeiteiroDashboard = () => {
 
   // 2. Unificação dos dados (Une o Contexto Global com o LocalStorage)
   const perfilUnificado = useMemo(() => {
+    const nomeLoja = dadosLoja?.nomeFantasia || 
+                     (typeof userData.loja === 'object' ? userData.loja?.nomeFantasia : userData.loja) || 
+                     'Minha Confeitaria';
     return {
       nome: userData.nome,
       email: userData.email,
-      loja: dadosLoja?.nomeFantasia || userData.loja || 'Minha Confeitaria',
+      loja: String(nomeLoja),
       fotoLoja: dadosLoja?.imagem || userData.fotoLoja || AppLogo
     };
   }, [userData, dadosLoja]);
@@ -109,12 +122,31 @@ const ConfeiteiroDashboard = () => {
     window.addEventListener('storage', handleSync);
 
     const refreshProfile = async () => {
+      // 🟢 SOLUÇÃO ANTILOOP: Se já buscou nesta instância do componente, bloqueia chamadas repetidas
+      if (perfilBuscado.current) return;
+
       if (token && userEmail) {
         try {
-          await AuthService.fetchAndSaveProfile(userEmail, token);
+          perfilBuscado.current = true; // Ativa a trava antes da requisição
+          const profile = await AuthService.fetchAndSaveProfile(userEmail, token);
           setUserData(extrairDadosUsuario());
+
+          // Sincroniza o contexto global com os dados da API
+          if (profile && atualizarDadosLoja) {
+            const lojaInfo = profile.loja || profile;
+            atualizarDadosLoja({
+              nome: lojaInfo.nomeFantasia || lojaInfo.nomeLoja || userData.loja,
+              descricao: lojaInfo.descricao || '',
+              cnpj: lojaInfo.cnpj || '',
+              telefone: lojaInfo.telefone || '',
+              endereco: lojaInfo.endereco || '',
+              imagem: lojaInfo.fotoUrl || lojaInfo.imagem || '',
+              horarioFuncionamento: lojaInfo.horarioFuncionamento || null
+            });
+          }
         } catch (error) {
           console.warn('Não foi possível atualizar perfil do confeiteiro no dashboard:', error);
+          perfilBuscado.current = false; // Destrava se der erro real para poder tentar novamente
         }
       }
     };
@@ -130,7 +162,7 @@ const ConfeiteiroDashboard = () => {
       window.removeEventListener('localStorageUpdate', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, [navigate, extrairDadosUsuario]);
+  }, [navigate, extrairDadosUsuario, atualizarDadosLoja, userData.loja]);
 
   // 4. Verificação de Horário Isolada (Sem recriar loops com estados)
   useEffect(() => {
@@ -178,7 +210,7 @@ const ConfeiteiroDashboard = () => {
         return (
           <div className={Styles.horariosContainer}>
             <h2>Horário de Funcionamento</h2>
-            <p>Configure os horários de abertura e fechamento da sua loja. O status será atualizado automaticamente.</p>
+            <p>Configure os horários de abertura e fechamento da sua loja. O status será updated automaticamente.</p>
             <div className={Styles.horariosGrid}>
               {Object.entries(businessHours).map(([day, hours]) => {
                 const dayNames = {

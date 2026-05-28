@@ -1,3 +1,5 @@
+// src/services/confeiteiroService.js
+
 import ApiService from './api';
 import AuthService from './authService';
 
@@ -5,17 +7,16 @@ import AuthService from './authService';
  * Atualiza o perfil da loja enviando JSON (Cenário A)
  */
 export const atualizarPerfilLoja = async (idLoja, dadosLoja) => {
-  // O segundo parâmetro DEVE ser o objeto de dados que vai no corpo (Body)
   return await ApiService.put(`/confeiteiro/loja/atualizar/${idLoja}`, dadosLoja);
 };
 
 class ConfeiteiroService {
-  // 🟢 CORRIGIDO: Nome alterado para plural para evitar duplicidade com a busca por ID
+  // Nome alterado para plural para evitar duplicidade com a busca por ID
   async getConfeiteiros() {
     return await ApiService.get('/confeiteiro');
   }
 
-  // Obter uma confeiteira específica pelo ID
+  // Obter uma confeiteira específica pelo ID (Usado no useEffect do Dashboard)
   async getConfeiteiro(id) {
     return await ApiService.get(`/confeiteiro/${id}`);
   }
@@ -32,7 +33,6 @@ class ConfeiteiroService {
 
   // Método da classe para compatibilidade com o PerfilLoja.jsx
   async atualizarPerfilLoja(idLoja, dadosLoja) {
-    // O segundo parâmetro DEVE ser o objeto de dados que vai no corpo (Body)
     return await ApiService.put(`/confeiteiro/loja/atualizar/${idLoja}`, dadosLoja);
   }
 
@@ -42,23 +42,26 @@ class ConfeiteiroService {
 
     if (!id) throw new Error('Usuário não autenticado.');
 
+    // Captura o nome da loja de forma flexível de acordo com quem chama
+    const nomeDaLojaMapeado = dados.nomeLoja || dados.name || dados.nomeFantasia;
+
     const payload = {
       id,
-      nome: dados.nome,
+      nome: dados.nome,                 // Nome da pessoa (Confeiteiro)
       email: dados.email,
-      nomeFantasia: dados.nome,
+      nomeFantasia: nomeDaLojaMapeado,  // Nome da Loja/Confeitaria para a Entidade Loja no Java
       descricao: dados.descricao,
       cnpj: dados.cnpj,
       telefone: dados.telefone,
-      endereco: `${dados.logradouro}, ${dados.numero}`,
+      endereco: dados.logradouro || dados.address || dados.endereco, 
       bairro: dados.bairro,
       cidade: dados.cidade,
-      uf: dados.estado,
+      uf: dados.estado || dados.uf,
       cep: dados.cep,
     };
 
     console.log('ID que estou enviando:', id);
-    console.log('Dados que estou enviando:', payload);
+    console.log('Dados que estou enviando para o banco:', payload);
 
     const formData = new FormData();
     formData.append('dados', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
@@ -68,8 +71,9 @@ class ConfeiteiroService {
 
     const response = await ApiService.put(`/confeiteiro/atualizar/${id}`, formData);
 
-    // Atualiza localStorage com os novos dados
-    if (dados.nome) localStorage.setItem('nomeLoja', dados.nome);
+    // Sincroniza chaves individuais no localStorage
+    if (nomeDaLojaMapeado) localStorage.setItem('nomeLoja', nomeDaLojaMapeado);
+    if (dados.nome) localStorage.setItem('nomeConfeiteiro', dados.nome); 
     if (dados.telefone) localStorage.setItem('userTelefone', dados.telefone);
     if (dados.email) localStorage.setItem('userEmail', dados.email);
     if (dados.cnpj) localStorage.setItem('userCnpj', dados.cnpj);
@@ -78,20 +82,26 @@ class ConfeiteiroService {
     if (dados.cidade) localStorage.setItem('userCidade', dados.cidade);
     if (dados.estado) localStorage.setItem('userUf', dados.estado);
 
+    // Sincroniza o objeto unificado local preventivo
     const updatedDadosConfeiteiro = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
     const updatedLoja = {
       ...(updatedDadosConfeiteiro.loja || {}),
-      nomeFantasia: dados.nome,
+      nomeFantasia: nomeDaLojaMapeado || updatedDadosConfeiteiro.loja?.nomeFantasia,
       descricao: dados.descricao,
       cnpj: dados.cnpj,
       telefone: dados.telefone,
-      endereco: `${dados.logradouro}, ${dados.numero}`,
+      endereco: dados.logradouro || dados.address || dados.endereco,
       bairro: dados.bairro,
       cidade: dados.cidade,
-      uf: dados.estado,
+      uf: dados.estado || dados.uf,
       cep: dados.cep,
     };
-    localStorage.setItem('dadosConfeiteiro', JSON.stringify({ ...updatedDadosConfeiteiro, loja: updatedLoja }));
+    
+    localStorage.setItem('dadosConfeiteiro', JSON.stringify({ 
+      ...updatedDadosConfeiteiro, 
+      nome: dados.nome || updatedDadosConfeiteiro.nome,
+      loja: updatedLoja 
+    }));
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('localStorageUpdate'));
