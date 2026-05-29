@@ -19,7 +19,6 @@ import MOCK_DATA from "../Components/MockData";
 import StoreCard from "../Components/StoreCard";
 import OfferItem from "../Components/OfferItem";
 import Logoloja from "../assests/img/doce_Livre_3.jpg"
-import avatar from "../assests/img/avatar.png"
 import Footer from "../Components/Footer.jsx"; // Importa o novo componente de rodapé
 import Styles from "../paginas/HomePage.module.css"
 import { IMAGE_MAP } from "../data/imageImports.jsx";
@@ -57,7 +56,6 @@ const HomePage = () => {
     const [showFavorites, setShowFavorites] = useState(false);
     const [currentStoreIndex, setCurrentStoreIndex] = useState(0);
 
-    const [selectedStore, setSelectedStore] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredStores, setFilteredStores] = useState(null);
     const [deliveryAddress, setDeliveryAddress] = useState('Entrega');
@@ -65,7 +63,6 @@ const HomePage = () => {
     const [fetchedAddress, setFetchedAddress] = useState('');
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [showAddressList, setShowAddressList] = useState(false);
-    const [pendingRatingOrder, setPendingRatingOrder] = useState(null);
 
     // Lojas melhores avaliadas (top 5 por rating + avaliações do cliente)
     const [topRatedStores, setTopRatedStores] = useState([]);
@@ -84,11 +81,6 @@ const HomePage = () => {
         const checkDelivery = () => {
             const completed = localStorage.getItem('deliveryCompleted');
             if (completed) {
-                const data = JSON.parse(completed);
-                setPendingRatingOrder({
-                    id: data.orderId,
-                    storeName: data.storeName,
-                });
                 localStorage.removeItem('deliveryCompleted');
             }
         };
@@ -204,12 +196,6 @@ const HomePage = () => {
             ...(half ? [<IoStarHalf key="h" className={Styles.star_full} />] : []),
             ...Array(empty).fill(null).map((_, i) => <IoStarOutline key={`e${i}`} className={Styles.star_empty} />),
         ];
-    };
-
-    const handleRatingSubmit = (ratingData) => {
-        const existing = JSON.parse(localStorage.getItem('storeRatings') || '[]');
-        localStorage.setItem('storeRatings', JSON.stringify([...existing, ratingData]));
-        setPendingRatingOrder(null);
     };
 
     // FUNÇÃO PARA ADICIONAR ITEM
@@ -379,10 +365,6 @@ const HomePage = () => {
         }
     };
     
-    const handleAddressClick = () => {
-        setShowAddressModal(true);
-    };
-    
     const handleAddressSubmit = (address) => {
         setDeliveryAddress(address);
         
@@ -455,9 +437,9 @@ const HomePage = () => {
                                 
                                 {showAddressList && (
                                     <div className={Styles.address_dropdown}>
-                                        {savedAddresses.map((addr, index) => (
+                                        {savedAddresses.map((addr, _index) => (
                                             <button
-                                                key={index}
+                                                key={_index}
                                                 className={Styles.address_option}
                                                 onClick={() => {
                                                     setDeliveryAddress(addr);
@@ -675,7 +657,7 @@ const HomePage = () => {
                             className={Styles.offers_track}
                             style={{ transform: `translateX(-${currentOfferIndex * 300}px)` }}
                         >
-                            {offers.map((offer, index) => (
+                            {offers.map((offer) => (
                                 <div key={offer.id} className={Styles.offer_wrapper}>
                                     <button 
                                         className={Styles.favorite_btn}
@@ -847,7 +829,7 @@ const HomePage = () => {
                                     } else {
                                         alert('CEP não encontrado!');
                                     }
-                                } catch (error) {
+                                } catch {
                                     alert('Erro ao buscar CEP. Tente novamente.');
                                 }
                             } else {

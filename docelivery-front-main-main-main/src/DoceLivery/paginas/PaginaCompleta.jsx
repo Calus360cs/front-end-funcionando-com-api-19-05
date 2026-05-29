@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Style from './PaginaCompleta.module.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,7 +7,6 @@ import doceLivre from '../assests/img/doce_Livre_3.jpg';
 import avatar from '../assests/img/avatar.png';
 import meninaEntregadora from '../assests/img/menina_entregadora1.png';
 import entregador_1 from '../assests/img/entregador_1.png';
-import entregador_2 from '../assests/img/entregador_2.png';
 
 import { IMAGE_MAP } from '../data/imageImports.jsx';
 import Footer from '../Components/Footer.jsx';
@@ -23,23 +22,9 @@ const lojasData = [
   { id: 8, nome: "Só Delícia", endereco: "Rua dos Sonhos, 567", imagem: IMAGE_MAP['so_delicia'] },
 ];
 
-const feedbacks = [
-  {
-    img: entregador_1,
-    nome: "Zé Entregador",
-    texto: "A Doce Livery me proporcionou uma renda extra incrível! As entregas são rápidas e os clientes adoram a qualidade dos doces."
-  },
-  {
-    img: entregador_2,
-    nome: "Riky Delivery",
-    texto: "Ser entregador na Doce Livery é uma experiência incrível! As entregas são rápidas, os clientes são sempre satisfeitos."
-  }
-];
-
 function PaginaCompleta() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentLojaIndex, setCurrentLojaIndex] = useState(0);
-  const carrosselRef = useRef(null);
 
   // Auto-rotate carousel
   useEffect(() => {

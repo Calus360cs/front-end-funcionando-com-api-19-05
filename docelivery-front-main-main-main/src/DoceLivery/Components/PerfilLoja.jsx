@@ -171,10 +171,10 @@ const PerfilLoja = () => {
     const tratarSalvar = async (e) => {
         e.preventDefault();
 
-        // CORREÇÃO 1: Envia sempre o ID do confeiteiro para bater com a busca findByConfeiteiroId no Java
+        // Envia sempre o ID do confeiteiro para bater com a busca findByConfeiteiroId no Java
         const idParaAtualizar = localStorage.getItem('userId');
         
-        // 1. Garante que a foto enviada seja estritamente uma String (URL)
+        // 🟢 ASSEGURA QUE A IMAGEM SEJA ENVIADA ESTRITAMENTE COMO UMA URL (STRING)
         let urlImagem = '';
         if (formData.imagem) {
             if (typeof formData.imagem === 'object') {
@@ -184,7 +184,7 @@ const PerfilLoja = () => {
             }
         }
 
-        // 2. Monta o payload limpando máscaras de CNPJ/Telefone e protegendo strings
+        // Monta o payload limpando máscaras de CNPJ/Telefone e protegendo strings
         const dadosDaLoja = {
             nomeFantasia: formData.nome,
             cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, 
@@ -199,7 +199,6 @@ const PerfilLoja = () => {
             const response = await atualizarPerfilLoja(idParaAtualizar, dadosDaLoja);
 
             if (response) {
-                // CORREÇÃO 2: Mapeia corretamente o Confeiteiro completo retornado pelo Java e extrai a loja interna
                 const confeiteiroAtualizado = response.data || response;
                 localStorage.setItem('user', JSON.stringify(confeiteiroAtualizado));
 
@@ -222,7 +221,7 @@ const PerfilLoja = () => {
             
             window.dispatchEvent(new Event('localStorageUpdate'));
             localStorage.setItem('nomeLoja', formData.nome);
-            alert("Perfil da loja updated com sucesso!");
+            alert("Perfil da loja atualizado com sucesso!");
         } catch (erro) {
             console.error(erro);
             alert("Erro ao atualizar perfil. Verifique os dados ou a conexão.");

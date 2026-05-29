@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState, useCallback, useMemo, useContext } from 'react';
 import axios from 'axios';
 import { DashboardContext } from './dashboardContextInstance'; // Importa o objeto Context do novo arquivo
@@ -169,4 +170,3 @@ export const useDashboard = () => {
     }
     return context;
 };
-

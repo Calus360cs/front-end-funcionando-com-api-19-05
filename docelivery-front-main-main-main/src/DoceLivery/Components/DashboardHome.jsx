@@ -105,7 +105,7 @@ const DashboardHome = ({ editMode, userData }) => {
 
         buscarDadosDashboard();
 
-    }, [confeiteiroId, userData]); 
+    }, [confeiteiroId, userData, storeData]); 
 
     // 3. PROCESSAMENTO MATEMÁTICO REAL DOS PEDIDOS DO BANCO
     const kpisCalculados = useMemo(() => {
