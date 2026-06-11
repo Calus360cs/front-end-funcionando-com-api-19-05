@@ -1056,6 +1056,24 @@ body {
     color: #8a2be2;
     font-weight: 600;
 }
+.perfil_btn {
+  background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.perfil_btn:hover {
+  background: linear-gradient(135deg, #ff1493 0%, #6a1ebf 100%);
+  transform: scale(1.05);
+}
+
 .profile_btn {
   background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
   border: none;

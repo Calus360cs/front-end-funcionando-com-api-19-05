@@ -8,7 +8,6 @@ import confeiteiroService, { atualizarPerfilLoja } from '../services/confeiteiro
 const PerfilLoja = () => {
     const { dadosLoja, atualizarDadosLoja, atualizarHorarioFuncionamento } = useLoja();
     
-    // Guardaremos o id real da loja retornado pelo banco de dados dinamicamente aqui
     // eslint-disable-next-line no-unused-vars
     const [lojaIdReal, setLojaIdReal] = useState(null);
 
@@ -40,34 +39,42 @@ const PerfilLoja = () => {
             if (!idUsuario) return;
 
             try {
+                // 🟢 Agora recebe o ConfeiteiroDTO mapeado e limpo do Spring Boot
                 const usuario = await confeiteiroService.getConfeiteiro(idUsuario);
                 
                 if (usuario) {
-                    // 🟢 CAPTURA DO ID REAL DA LOJA
-                    if (usuario.loja?.id) {
-                        setLojaIdReal(usuario.loja.id);
+                    // Captura do ID real da loja (pode ser null se ainda não foi criada)
+                    const loja = usuario.loja || {};
+                    
+                    if (loja.id) {
+                        setLojaIdReal(loja.id);
                     }
-                    const loja = usuario.loja || usuario;
 
-                    // Tratamento seguro do endereço splitado
+                    // Tratamento seguro do endereço splitado da loja
                     const enderecoPartes = loja.endereco ? loja.endereco.split(',') : [];
-                    const logradouroBase = enderecoPartes[0] || usuario.logradouro || '';
-                    const numeroBase = enderecoPartes[1] ? enderecoPartes[1].trim() : '';
+                    const logradouroBase = enderecoPartes[0] || '';
+                    let numeroBase = enderecoPartes[1] ? enderecoPartes[1].split('-')[0].trim() : '';
+                    let complementoBase = enderecoPartes[1] && enderecoPartes[1].split('-')[1] ? enderecoPartes[1].split('-')[1].trim() : '';
+
+                    // Endereço do confeiteiro como fallback quando loja ainda não tem endereço
+                    const enderecoFallbackPartes = usuario.endereco ? usuario.endereco.split(',') : [];
+                    const logradouroFallback = enderecoFallbackPartes[0]?.trim() || '';
+                    const numeroFallback = enderecoFallbackPartes[1]?.split('-')[0]?.trim() || '';
 
                     setFormData({
-                        nome: loja.nomeFantasia || usuario.nomeLoja || usuario.nomeConfeitaria || usuario.nome || '',
+                        nome: loja.nomeFantasia || '',
                         email: usuario.email || '',
                         telefone: loja.telefone || usuario.telefone || '',
-                        cnpj: loja.cnpj || usuario.cnpj || '',
-                        cep: loja.cep || usuario.cep || '',
-                        logradouro: logradouroBase,
-                        numero: numeroBase,
-                        complemento: usuario.complemento || '',
-                        bairro: loja.bairro || usuario.bairro || '',
-                        cidade: loja.cidade || usuario.cidade || '',
-                        estado: loja.uf || loja.estado || usuario.uf || usuario.estado || '',
-                        descricao: loja.descricao || usuario.descricao || '',
-                        imagem: loja.fotoUrl || loja.imagem || usuario.imagemUrl || usuario.imagem || '',
+                        cnpj: loja.cnpj || '',
+                        cep: usuario.cep || '',
+                        logradouro: logradouroBase || logradouroFallback,
+                        numero: numeroBase || numeroFallback,
+                        complemento: complementoBase || '',
+                        bairro: usuario.bairro || '',
+                        cidade: usuario.cidade || '',
+                        estado: usuario.uf || '',
+                        descricao: loja.descricao || '',
+                        imagem: loja.fotoUrl || loja.imagem || '',
                     });
 
                     if (loja.horarioFuncionamento) {
@@ -76,21 +83,21 @@ const PerfilLoja = () => {
                         setHorarios(dadosLoja.horarioFuncionamento);
                     }
 
-                    // 🟢 Garante que o cabeçalho do Dashboard atualize com os dados vindos da API
+                    // Atualiza o cabeçalho do Dashboard com os dados reais da API
                     if (atualizarDadosLoja) {
                         atualizarDadosLoja({
-                            nome: loja.nomeFantasia || usuario.nomeLoja || '',
+                            id: loja.id || null,
+                            nome: loja.nomeFantasia || '',
                             descricao: loja.descricao || '',
                             cnpj: loja.cnpj || '',
-                            telefone: loja.telefone || '',
-                            endereco: loja.endereco || '',
-                            imagem: loja.fotoUrl || '',
+                            telefone: loja.telefone || usuario.telefone || '',
+                            endereco: loja.endereco || usuario.endereco || '',
+                            imagem: loja.fotoUrl || loja.imagem || '',
                         });
                     }
                 }
             } catch (error) {
                 console.error("Erro ao carregar perfil da API, tentando dados do contexto local:", error);
-                // Fallback caso a API falhe na primeira requisição
                 if (dadosLoja) {
                     setFormData({
                         nome: dadosLoja.nomeFantasia || dadosLoja.nome || '',
@@ -113,7 +120,7 @@ const PerfilLoja = () => {
 
         carregarPerfilAPI();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // 🟢 Removido 'dadosLoja' daqui para evitar loops de re-render e perdas de dados
+    }, []); 
 
     const applyMask = (name, value) => {
         const digits = value.replace(/\D/g, '');
@@ -152,7 +159,7 @@ const PerfilLoja = () => {
                                 ...prev,
                                 logradouro: data.logradouro || '',
                                 bairro: data.bairro || '',
-                                city: data.localidade || '', 
+                                city: data.localidade || '', // Mantendo mapeamentos originais
                                 cidade: data.localidade || '',
                                 estado: data.uf || '',
                             }));
@@ -171,10 +178,15 @@ const PerfilLoja = () => {
     const tratarSalvar = async (e) => {
         e.preventDefault();
 
-        // Envia sempre o ID do confeiteiro para bater com a busca findByConfeiteiroId no Java
-        const idParaAtualizar = localStorage.getItem('userId');
+        const userId = localStorage.getItem('userId');
+        // Usa o ID real da loja se existir, senão usa o userId (backend cria e vincula a loja)
+        const idParaAtualizar = lojaIdReal || userId;
         
-        // 🟢 ASSEGURA QUE A IMAGEM SEJA ENVIADA ESTRITAMENTE COMO UMA URL (STRING)
+        if (!idParaAtualizar) {
+            alert('Não foi possível identificar o usuário. Faça login novamente.');
+            return;
+        }
+        
         let urlImagem = '';
         if (formData.imagem) {
             if (typeof formData.imagem === 'object') {
@@ -184,14 +196,23 @@ const PerfilLoja = () => {
             }
         }
 
-        // Monta o payload limpando máscaras de CNPJ/Telefone e protegendo strings
+        const cnpjLimpo = formData.cnpj ? formData.cnpj.replace(/\D/g, '') : '';
+
+        if (!cnpjLimpo) {
+            alert("Por favor, preencha o CNPJ da sua confeitaria.");
+            return;
+        }
+
         const dadosDaLoja = {
             nomeFantasia: formData.nome,
-            cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, 
-            telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null, 
+            cnpj: cnpjLimpo, 
+            telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null,
             descricao: formData.descricao || '',
             endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`,
-            fotoUrl: urlImagem 
+            fotoUrl: urlImagem,
+            confeiteiro: {
+                id: Number(userId)  // sempre o ID do confeiteiro, não da loja
+            }
         };
 
         try {
@@ -217,14 +238,16 @@ const PerfilLoja = () => {
                     imagem: lojaAtualizada.fotoUrl || urlImagem || ''
                 });
                 atualizarHorarioFuncionamento(horarios);
+                
+                if(lojaAtualizada.id) setLojaIdReal(lojaAtualizada.id);
             }
             
             window.dispatchEvent(new Event('localStorageUpdate'));
             localStorage.setItem('nomeLoja', formData.nome);
-            alert("Perfil da loja atualizado com sucesso!");
+            alert("Perfil da loja updated com sucesso!");
         } catch (erro) {
             console.error(erro);
-            alert("Erro ao atualizar perfil. Verifique os dados ou a conexão.");
+            alert("Erro ao atualizar perfil. Certifique-se de que este CNPJ já não está cadastrado.");
         }
     };
 
@@ -265,7 +288,7 @@ const PerfilLoja = () => {
                             />
                         </div>
                         <div className={Styles.formGroup}>
-                            <label>CNPJ</label>
+                            <label>CNPJ *</label>
                             <input
                                 type="text"
                                 name="cnpj"
@@ -273,6 +296,7 @@ const PerfilLoja = () => {
                                 onChange={handleChange}
                                 placeholder="00.000.000/0000-00"
                                 maxLength={18}
+                                required
                             />
                         </div>
                     </div>

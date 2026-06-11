@@ -49,6 +49,7 @@ const ConfeiteiroDashboard = () => {
     
     try {
       const parsed = JSON.parse(rawStorage);
+      console.log("Dados do usuário logado:", parsed);
       // Normaliza se o objeto vier dentro de .user, .data ou na raiz
       const dadosReais = parsed.user || parsed.data || parsed;
 
@@ -135,7 +136,8 @@ const ConfeiteiroDashboard = () => {
           if (profile && atualizarDadosLoja) {
             const lojaInfo = profile.loja || profile;
             atualizarDadosLoja({
-              nome: lojaInfo.nomeFantasia || lojaInfo.nomeLoja || userData.loja,
+              id: lojaInfo.id || null, // ID real da loja
+              nome: lojaInfo.nomeFantasia || lojaInfo.nomeLoja || '',
               descricao: lojaInfo.descricao || '',
               cnpj: lojaInfo.cnpj || '',
               telefone: lojaInfo.telefone || '',
@@ -162,7 +164,7 @@ const ConfeiteiroDashboard = () => {
       window.removeEventListener('localStorageUpdate', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, [navigate, extrairDadosUsuario, atualizarDadosLoja, userData.loja]);
+  }, [navigate, extrairDadosUsuario, atualizarDadosLoja]); // removido userData.loja para evitar loop
 
   // 4. Verificação de Horário Isolada (Sem recriar loops com estados)
   useEffect(() => {
@@ -289,7 +291,18 @@ const ConfeiteiroDashboard = () => {
     <div className={Styles.dashboardContainer}>
       <aside className={`${Styles.sidebar} ${sidebarOpen ? Styles.open : Styles.closed}`}>
         <div className={Styles.sidebarHeader}>
-          <img src={perfilUnificado.fotoLoja} alt="Logo da loja" className={Styles.sidebarLogo} />
+      <img 
+          src={
+            perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo
+              ? (String(perfilUnificado.fotoLoja).startsWith('http') 
+                  ? perfilUnificado.fotoLoja 
+                  : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`)
+              : AppLogo
+          } 
+          alt="Logo da loja" 
+          className={Styles.sidebarLogo}
+          onError={(e) => { e.target.src = AppLogo; }}
+        />
           <div className={Styles.sidebarBrand}>
             <h2>Docelivery</h2>
             <span>{perfilUnificado.loja}</span>
@@ -358,9 +371,14 @@ const ConfeiteiroDashboard = () => {
               <div className={Styles.avatar} style={{ overflow: 'hidden' }}>
                 {perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo ? (
                   <img 
-                    src={`http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`} 
+                    src={
+                      String(perfilUnificado.fotoLoja).startsWith('http') 
+                        ? perfilUnificado.fotoLoja 
+                        : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`
+                    } 
                     alt="Avatar" 
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 ) : (
                   perfilUnificado.nome?.charAt(0).toUpperCase() || '🧁'

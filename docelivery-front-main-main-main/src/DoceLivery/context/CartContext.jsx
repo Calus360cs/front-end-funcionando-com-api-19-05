@@ -87,15 +87,21 @@ export const CartProviderStore = ({ children }) => {
         setIsCartOpen(prev => !prev);
     }, []);
 
+    // 🚀 ATUALIZAÇÃO REQUISITADA: A função agora executa o callback primeiro 
+    // e só limpa o carrinho local DEPOIS que o componente salvar na API.
     const finalizarPedido = useCallback((onVendaFinalizada) => {
         if (cartItems.length > 0) {
             const valorTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-            setCartItems([]);
-            setActiveStore(null);
-            setIsClearingCart(false);
+            
+            // Se o componente passou uma função de sucesso (com o Axios), executa ela antes de limpar
             if (onVendaFinalizada) {
                 onVendaFinalizada(valorTotal);
             }
+            
+            // Limpa o estado local de forma segura após o disparo
+            setCartItems([]);
+            setActiveStore(null);
+            setIsClearingCart(false);
             return true;
         }
         return false;

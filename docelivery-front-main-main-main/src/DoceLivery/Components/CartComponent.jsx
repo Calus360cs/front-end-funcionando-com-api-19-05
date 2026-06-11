@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { useCartStore } from "../context/CartContext.jsx";
-import OrderService from "../services/OrderService"; // Importe o serviço de pedidos
+// Se você tiver um contexto de Autenticação, importe-o aqui para pegar o ID do Usuário logado:
+// import { useAuth } from "../context/AuthContext.jsx"; 
+import OrderService from "../services/OrderService"; 
 import Styles from "./CartComponent.module.css";
 import { IoCloseCircleOutline, IoTrashOutline, IoAddCircleOutline, IoRemoveCircleOutline } from 'react-icons/io5';
 
 const CartComponent = () => {
-    // ESTADOS PARA O AGENDAMENTO
+    // ESTADOS PARA O AGENDAMENTO E ENVIO
     const [isAgendado, setIsAgendado] = useState(false);
     const [dataAgendamento, setDataAgendamento] = useState("");
     const [loading, setLoading] = useState(false);
+
+    // Se tiver o context de autenticação configurado, descomente a linha abaixo:
+    // const { user } = useAuth(); 
 
     const formatPrice = (value) => {
         const safeValue = value || 0;
@@ -41,21 +46,18 @@ const CartComponent = () => {
         addItemToCart(item, null, 1);
     };
 
-    // --- FUNÇÃO PARA CONECTAR COM O BACKEND ---
-    const handleFinalizarPedido = async () => {
-        if (isAgendado && !dataAgendamento) {
-            alert("Por favor, selecione uma data para o agendamento.");
-            return;
-        }
+    // --- FUNÇÃO INTEGRADA COM O BACKEND SPRING BOOT ---
+    const handleFinalizarCompra = () => {
+        const usuarioLogado = JSON.parse(localStorage.getItem('user') || '{}');
+        const idLoja = activeStore?.id || 4;
 
-        setLoading(true);
-
-        // Montagem do payload exatamente como o Java espera
-        const payload = {
+        const payloadPedido = {
+            cliente: { id: usuarioLogado?.id },
+            loja: { id: Number(idLoja) },
+            valorPedido: totalPrice,
+            status: 'NOVO',
             agendado: isAgendado,
             dataEntregaAgendada: isAgendado ? dataAgendamento : null,
-            loja: { id: activeStore.id },
-            cliente: { id: 1 }, // Substituir pelo ID do usuário logado do seu contexto de Auth
             itens: cartItems.map(item => ({
                 produto: { id: item.id },
                 quantidade: item.quantity,
@@ -63,30 +65,29 @@ const CartComponent = () => {
             }))
         };
 
-        try {
-            const res = await OrderService.createOrder(payload);
-            console.log('Pedido criado com sucesso:', res.data);
-            
-            // Salva no localStorage para a tela de sucesso/pagamento se necessário
-            localStorage.setItem('ultimoPedido', JSON.stringify(res.data));
-            
-            clearCart(); // Limpa o carrinho após sucesso
-            toggleCart(); // Fecha o componente
-            window.location.href = '/docelivery/cliente/pagamento'; // Redireciona
-            
-        } catch (err) {
-            console.error("Erro ao enviar pedido para o SQL Server:", err);
-            alert("Erro ao processar pedido. Verifique se o servidor Java está rodando.");
-        } finally {
-            setLoading(false);
-        }
+        console.log("Enviando pedido unificado:", payloadPedido);
+
+        setLoading(true);
+        OrderService.createOrder(payloadPedido)
+            .then((res) => {
+                localStorage.setItem('ultimoPedido', JSON.stringify(res.data || res));
+                clearCart();
+                toggleCart();
+                alert("Pedido realizado com sucesso! Aguarde a confirmação do confeiteiro.");
+                window.location.href = '/docelivery/cliente/pagamento';
+            })
+            .catch(err => {
+                console.error("Erro ao enviar pedido:", err);
+                alert("Erro ao fechar pedido. Verifique o console do backend.");
+            })
+            .finally(() => setLoading(false));
     };
 
     return (
         <>
             <div className={Styles.cart_container}>
                 <button className={Styles.close_btn} onClick={toggleCart} aria-label="Fechar Carrinho">
-                    <IoCloseCircleOutline size={24} />
+                    <IoCloseCircleOutline size={28} />
                 </button>
                 
                 <h3 className={Styles.cart_title}>{storeName}</h3>
@@ -108,15 +109,21 @@ const CartComponent = () => {
                                 <div className={Styles.item_info}>
                                     <div className={Styles.item_name}>{item.name || item.title}</div>
                                     <div className={Styles.item_controls}>
-                                        <button onClick={() => removeItemFromCart(item.id)}>-</button>
+                                        <button onClick={() => removeItemFromCart(item.id)} aria-label="Remover um">
+                                            <IoRemoveCircleOutline size={20} />
+                                        </button>
                                         <span className={Styles.item_quantity}>{item.quantity}</span>
-                                        <button onClick={() => handleAddItem(item)}>+</button>
+                                        <button onClick={() => handleAddItem(item)} aria-label="Adicionar um">
+                                            <IoAddCircleOutline size={20} />
+                                        </button>
                                     </div>
                                     <div className={Styles.item_price}>
                                         {formatPrice(item.price * item.quantity)}
                                     </div>
                                 </div>
-                                <button onClick={() => removeAllOfItem(item.id)} className={Styles.remove_btn}>×</button>
+                                <button onClick={() => removeAllOfItem(item.id)} className={Styles.remove_btn} aria-label="Excluir item">
+                                    <IoTrashOutline size={20} />
+                                </button>
                             </div>
                         ))
                     )}
@@ -124,7 +131,7 @@ const CartComponent = () => {
             
                 {(cartItems || []).length > 0 && (
                     <>
-                        {/* SEÇÃO DE AGENDAMENTO IMPLEMENTADA */}
+                        {/* SEÇÃO DE AGENDAMENTO */}
                         <div className={Styles.agendamento_section}>
                             <label className={Styles.checkbox_label}>
                                 <input 
@@ -151,7 +158,7 @@ const CartComponent = () => {
 
                         <button 
                             className={Styles.checkout_btn}
-                            onClick={handleFinalizarPedido}
+                            onClick={handleFinalizarCompra}
                             disabled={loading}
                         >
                             {loading ? "Processando..." : "Finalizar Pedido"}

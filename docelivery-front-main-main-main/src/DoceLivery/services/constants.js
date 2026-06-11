@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
     HISTORICO: (id) => `/pedidos/confeiteiro/${id}/historico`,
   },
   PRODUTO: {
+    BASE: '/produtos',
     LIST: '/produtos',
     BY_STORE: (id) => `/produtos/store/${id}`,
     BY_ID: (id) => `/produtos/${id}`,

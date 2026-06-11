@@ -10,28 +10,30 @@ class AuthService {
    * @param {string} tipoDefault - Tipo de usuário caso não venha no objeto (cliente, confeiteiro, etc)
    */
   _salvarDadosUsuario(response, tipoDefault) {
-    // Adicione um log para ver exatamente o que o Java devolveu
     console.log("Resposta da API:", response);
-    // Aceita tanto respostas de login (com token) quanto objetos de perfil (sem token).
     const resp = response || {};
 
-    // Se houver token na resposta, armazena-o
     if (resp.token) {
       localStorage.setItem('userToken', resp.token);
     }
 
-    // Se o user vier aninhado ou na raiz da resposta
     const u = resp.user || resp.data || resp;
 
-    // Informações Básicas (grava mesmo quando não há token)
     try {
       if (u) {
-        // 🟢 Salva o objeto exatamente como veio do banco de dados Java (Requisitado)
         localStorage.setItem('user', JSON.stringify(u));
 
-        if (u.tipo || tipoDefault) localStorage.setItem('userType', ((u.tipo || tipoDefault) + '').toLowerCase());
+        const tipoFinal = (u.tipo || tipoDefault || '').toLowerCase();
+        if (tipoFinal) localStorage.setItem('userType', tipoFinal);
+
         const nomeUsuario = u.nome || u.nomeConfeiteiro || u.userName || u.nomeLoja || u.nomeFantasia || u.loja?.nomeFantasia || '';
-        if (nomeUsuario) localStorage.setItem('userName', nomeUsuario);
+        if (nomeUsuario) {
+          localStorage.setItem('userName', nomeUsuario);
+          // Se for entregador, garante que salva na chave esperada pelo Dashboard
+          if (tipoFinal === 'entregador') {
+            localStorage.setItem('nomeEntregador', nomeUsuario);
+          }
+        }
         if (u.nomeConfeiteiro) localStorage.setItem('nomeConfeiteiro', u.nomeConfeiteiro);
 
         const lojaDados = u.loja || u;
@@ -44,28 +46,24 @@ class AuthService {
         if (u.email) localStorage.setItem('userEmail', u.email);
         if (u.cpf) localStorage.setItem('userCpf', u.cpf);
 
-        // Contato e Nascimento
         if (u.telefone || u.contato) localStorage.setItem('userTelefone', u.telefone || u.contato);
         if (u.dataNascimento) localStorage.setItem('userDataNascimento', u.dataNascimento);
 
-        // Endereço
         if (u.endereco) localStorage.setItem('userEndereco', u.endereco);
         if (u.cep) localStorage.setItem('userCep', u.cep);
         if (u.bairro) localStorage.setItem('userBairro', u.bairro);
         if (u.cidade) localStorage.setItem('userCidade', u.cidade);
         if (u.uf || u.estado) localStorage.setItem('userUf', u.uf || u.estado);
 
-        // Identificador
         const id = u.id || u.idConfeiteiro || u.idCliente || u.idEntregador || u.idUsuario || u.userId || u.confeiteiroId || u.loja?.id;
         if (id) localStorage.setItem('userId', id);
 
-        // armazenar objeto completo do confeiteiro/loja para UI quando fizer sentido
         const maybeConfeiteiro = u.loja || u.confeiteiro || u;
         if (maybeConfeiteiro && (maybeConfeiteiro.nomeLoja || maybeConfeiteiro.nomeConfeitaria || maybeConfeiteiro.loja || maybeConfeiteiro.nomeFantasia || maybeConfeiteiro.nomeConfeiteiro)) {
           localStorage.setItem('dadosConfeiteiro', JSON.stringify(u));
         }
 
-        // Campos específicos
+        // Campos específicos do Entregador
         if (u.cnh) localStorage.setItem('userCnh', u.cnh);
         if (u.veiculo) localStorage.setItem('userVeiculo', u.veiculo);
         if (u.placaVeiculo) localStorage.setItem('userPlacaVeiculo', u.placaVeiculo);
@@ -82,37 +80,28 @@ class AuthService {
 
   // --- MÉTODOS DE LOGIN ---
 
-  async loginCliente(credenciais) { // credenciais = { email: '...', senha: '...' }
+  async loginCliente(credenciais) {
     try {
       const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_CLIENTE, credenciais);
       this._salvarDadosUsuario(response, 'cliente');
       const emailParaBuscar = credenciais.email || response.user?.email || response.data?.email || localStorage.getItem('userEmail');
-      try { await this.fetchAndSaveProfile(emailParaBuscar); } catch (e) { console.warn('Não foi possível buscar perfil após login cliente', e); }
+      try { await this.fetchAndSaveProfile(emailParaBuscar, undefined, 'cliente'); } catch (e) { console.warn('Não foi possível buscar perfil após login cliente', e); }
       return response;
     } catch (error) {
       console.error("Erro detalhado no login:", error.response?.data);
-      throw error; // Repassa o erro para o componente React tratar
+      throw error;
     }
   }
 
   async loginConfeiteiro(credentials) {
     try {
-      const response = await axios.post(`http://localhost:8080/api/auth/login`, credentials);
-      if (response.data && response.data.token) {
-        // Corrigido para gravar tanto em 'token' quanto em 'userToken' evitando falha de autenticação no app
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userToken', response.data.token);
-        
-        // 🟢 Salva o objeto exatamente como veio do banco de dados Java
-        const usuarioGeral = response.data.user || response.data;
-        localStorage.setItem('user', JSON.stringify(usuarioGeral));
-
-        this._salvarDadosUsuario(response.data, 'confeiteiro');
-        await this.fetchAndSaveProfile(credentials.email, response.data.token);
-      }
-      return response.data;
+      const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_CONFEITEIRO, credentials);
+      this._salvarDadosUsuario(response, 'confeiteiro');
+      const emailParaBuscar = credentials.email || response?.user?.email || response?.email || localStorage.getItem('userEmail');
+      try { await this.fetchAndSaveProfile(emailParaBuscar, undefined, 'confeiteiro'); } catch (e) { console.warn('Não foi possível buscar perfil após login confeiteiro', e); }
+      return response;
     } catch (error) {
-      console.error("Não foi possível buscar perfil após login confeiteiro", error);
+      console.error('Erro no login do confeiteiro:', error.response?.data);
       throw error;
     }
   }
@@ -120,24 +109,38 @@ class AuthService {
   async loginAdmin(email, senha) {
     const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_ADMIN, { email, senha });
     this._salvarDadosUsuario(response, 'admin');
-    try { await this.fetchAndSaveProfile(email); } catch (e) { console.warn('Não foi possível buscar perfil após login admin', e); }
+    try { await this.fetchAndSaveProfile(email, undefined, 'admin'); } catch (e) { console.warn('Não foi possível buscar perfil após login admin', e); }
     return response;
   }
 
   async loginEntregador(email, senha) {
     const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_ENTREGADOR, { email, senha });
     this._salvarDadosUsuario(response, 'entregador');
-    try { await this.fetchAndSaveProfile(email); } catch (e) { console.warn('Não foi possível buscar perfil após login entregador', e); }
+    
+    // CORREÇÃO: Passando o tipo 'entregador' para não disparar a rota do confeiteiro
+    try { 
+      await this.fetchAndSaveProfile(email, undefined, 'entregador'); 
+    } catch (e) { 
+      console.warn('Não foi possível buscar perfil após login entregador', e); 
+    }
     return response;
   }
 
-  // --- MÉTODOS DE CADASTRO (CORRIGIDOS) ---
+  // --- MÉTODOS DE CADASTRO E PERFIL ---
 
-  async fetchAndSaveProfile(email, token) {
+  // CORREÇÃO: Adicionado o parâmetro 'userType' para mapear a requisição correta
+  async fetchAndSaveProfile(email, token, userType = 'confeiteiro') {
     try {
       const emailParaBuscar = email || localStorage.getItem('userEmail') || localStorage.getItem('email');
       if (!emailParaBuscar) {
         throw new Error('Email não fornecido para buscar perfil do usuário.');
+      }
+
+      // Se for entregador e seu backend ainda não tiver uma rota específica de profile (/api/entregador/profile)
+      // os dados coletados no login e salvos pelo _salvarDadosUsuario já são autossuficientes.
+      if (userType === 'entregador') {
+        console.log("Perfil de entregador carregado através dos dados de autenticação.");
+        return JSON.parse(localStorage.getItem('user'));
       }
 
       const authToken = token || localStorage.getItem('userToken') || localStorage.getItem('token');
@@ -151,15 +154,13 @@ class AuthService {
       );
 
       let profileData = resposta.data;
-      // Se o backend não retornou dados da loja (nome fantasia), tentar buscar detalhes completos
+
       try {
         const hasLoja = profileData && (profileData.loja || profileData.nomeLoja || profileData.nomeFantasia || profileData.nomeConfeitaria);
-        if (!hasLoja && profileData && profileData.id) {
+        if (!hasLoja && profileData && profileData.id && userType === 'confeiteiro') {
           try {
             const detalhes = await ConfeiteiroService.getConfeiteiro(profileData.id);
-            // detalhes pode vir aninhado em .data
             const detalhesData = detalhes.data || detalhes;
-            // mesclar campos mais relevantes
             profileData = { ...profileData, ...detalhesData };
           } catch (err) {
             console.warn('Não foi possível buscar detalhes do confeiteiro:', err);
@@ -169,11 +170,13 @@ class AuthService {
         console.warn('Erro ao verificar/mesclar dados de loja:', e);
       }
 
-      // 🟢 Salva o objeto bruto vindo do profileData para garantir compatibilidade total com o Java
       localStorage.setItem('user', JSON.stringify(profileData));
       
-      localStorage.setItem('dadosConfeiteiro', JSON.stringify(profileData));
-      this._salvarDadosUsuario(profileData, 'confeiteiro');
+      if (userType === 'confeiteiro') {
+        localStorage.setItem('dadosConfeiteiro', JSON.stringify(profileData));
+      }
+      
+      this._salvarDadosUsuario(profileData, userType);
 
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('localStorageUpdate'));
       return profileData;

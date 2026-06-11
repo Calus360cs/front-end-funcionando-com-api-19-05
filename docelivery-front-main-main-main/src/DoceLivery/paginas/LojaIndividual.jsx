@@ -27,7 +27,7 @@ const LojaIndividual = () => {
         const rawImagem = info.imagem || info.imagemUrl || info.logoUrl;
 
         return {
-            id: lojaId,
+            id: info.id || Number(lojaId), // ID real da loja vindo do objeto da API
             nome: info.nomeFantasia || info.nomeLoja || info.nome || 'Confeitaria',
             telefone: info.telefone || dadosBrutos?.telefone || info.phone || '',
             endereco: info.endereco || info.address || (info.logradouro ? `${info.logradouro}, ${info.numero}` : ''),

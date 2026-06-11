@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoCloudUpload, IoImage, IoClose } from 'react-icons/io5';
 import Styles from './ImageUploader.module.css';
 
+const API_BASE = 'http://localhost:8080';
+
+const resolveImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === 'object') return null; // File object, sem preview de URL
+    if (String(img).startsWith('http') || String(img).startsWith('data:')) return img;
+    return `${API_BASE}/uploads/${img}`;
+};
+
 const ImageUploader = ({ onImageSelect, currentImage }) => {
     const [dragOver, setDragOver] = useState(false);
-    const [preview, setPreview] = useState(currentImage || null);
+    const [preview, setPreview] = useState(() => resolveImageUrl(currentImage));
+
+    // Sincroniza o preview quando currentImage mudar (ex: API retorna a foto salva no banco)
+    useEffect(() => {
+        if (currentImage && typeof currentImage === 'string') {
+            setPreview(resolveImageUrl(currentImage));
+        }
+    }, [currentImage]);
 
     const handleDragOver = (e) => {
         e.preventDefault();

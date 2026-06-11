@@ -28,7 +28,8 @@ const DashboardHome = ({ editMode, userData }) => {
         description: '', 
         email: '',
         phone: '',
-        address: '' 
+        address: '',
+        fotoUrl: ''
     });
 
     // 1. Garante a captura do ID do Confeiteiro de forma segura
@@ -62,23 +63,22 @@ const DashboardHome = ({ editMode, userData }) => {
                 if (dadosConfeiteiro) {
                     console.log("Dados do Confeiteiro retornados do Banco:", dadosConfeiteiro);
                     
-                    const dadosLocais = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
-                    const usuarioLocal = JSON.parse(localStorage.getItem('user') || '{}');
+                    const lojaReal = dadosConfeiteiro.loja; // pode ser null
 
-                    const lojaObjeto = (dadosConfeiteiro.loja && Object.keys(dadosConfeiteiro.loja).length > 0) 
-                        ? dadosConfeiteiro.loja 
-                        : (dadosLocais.loja || usuarioLocal.loja || {});
-
-                    // 🟢 CORREÇÃO DEFINTIVA: Atualizamos APENAS o estado visual interno do painel.
-                    // A linha que chamava "updateStoreData(dadosConfeiteiro.loja)" foi REMOVIDA daqui.
                     setDisplayStoreData({
                         nomeConfeiteiro: dadosConfeiteiro.nome || 'Confeiteiro',
-                        name: dadosConfeiteiro.loja?.nomeFantasia || lojaObjeto.nomeFantasia || dadosConfeiteiro.nomeFantasia || storeData?.name || 'Preencha o nome da sua Confeitaria',
-                        description: lojaObjeto.descricao || 'Clique em editar para adicionar uma descrição.',
+                        name: lojaReal?.nomeFantasia || '',
+                        description: lojaReal?.descricao || '',
                         email: dadosConfeiteiro.email || '',
-                        phone: lojaObjeto.telefone || dadosConfeiteiro.telefone || '',
-                        address: lojaObjeto.endereco || dadosConfeiteiro.logradouro || dadosConfeiteiro.endereco || 'Endereço não cadastrado'
+                        phone: lojaReal?.telefone || dadosConfeiteiro.telefone || '',
+                        address: lojaReal?.endereco || dadosConfeiteiro.endereco || '',
+                        fotoUrl: lojaReal?.fotoUrl || lojaReal?.imagem || ''
                     });
+
+                    // Se a loja ainda não existe, avisa o usuário para configurar o perfil
+                    if (!lojaReal || !lojaReal.id) {
+                        console.warn('Loja ainda não cadastrada. O confeiteiro precisa preencher o Perfil da Loja.');
+                    }
 
                 } else {
                     const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -200,8 +200,26 @@ const DashboardHome = ({ editMode, userData }) => {
         <div className={Styles.dashboardHome}>
             <div className={Styles.welcomeSection}>
                 <h1>Bem-vindo de volta, {displayStoreData.nomeConfeiteiro}!</h1>
-                <p>Gerencie seus kits... da loja <strong>{typeof displayStoreData.name === 'object' ? displayStoreData.name?.nomeFantasia : displayStoreData.name}</strong></p>
+                {!displayStoreData.name ? (
+                    <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', padding: '12px 16px', marginBottom: '12px', color: '#856404' }}>
+                        ⚠️ Sua loja ainda não foi configurada. Vá em <strong>Perfil da Loja</strong> para preencher o nome, CNPJ e foto.
+                    </div>
+                ) : (
+                    <p>Gerencie seus kits... da loja <strong>{displayStoreData.name}</strong></p>
+                )}
                 <div className={Styles.storeInfo}>
+                    {displayStoreData.fotoUrl && (
+                        <img 
+                            src={
+                                String(displayStoreData.fotoUrl).startsWith('http')
+                                    ? displayStoreData.fotoUrl
+                                    : `http://localhost:8080/uploads/${displayStoreData.fotoUrl}`
+                            }
+                            alt="Foto da loja"
+                            style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', marginBottom: '10px' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                    )}
                     <h3>
                         <EditableField
                             field="name"
