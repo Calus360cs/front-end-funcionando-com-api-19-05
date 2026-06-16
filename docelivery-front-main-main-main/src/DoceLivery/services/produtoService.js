@@ -61,7 +61,8 @@ class ProdutoService {
       descricao: dados.descricao || '',
       preco: dados.preco,
       estoque: dados.estoque || 0,
-      categoriaId: parseInt(dados.categoriaId)
+      categoriaId: parseInt(dados.categoriaId),
+      disponivel: dados.disponivel !== undefined ? dados.disponivel : true
     };
 
     formData.append(
@@ -131,6 +132,9 @@ class ProdutoService {
         'Content-Type': undefined
       }
     });
+  }
+  async deletarProduto(id) {
+    return await ApiService.delete(API_ENDPOINTS.PRODUTO.BY_ID(id));
   }
 }
 

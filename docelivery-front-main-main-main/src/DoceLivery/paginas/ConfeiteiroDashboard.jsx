@@ -14,20 +14,17 @@ import AppLogo from '../assests/img/doce_Livre_3.jpg';
 
 const ConfeiteiroDashboard = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
-  const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [storeOpen, setStoreOpen] = useState(true);
   
   const navigate = useNavigate();
-  const { dadosLoja, atualizarDadosLoja } = useLoja(); // Pegando dados e função de atualização
+  const { dadosLoja, atualizarDadosLoja } = useLoja();
 
-  // Trava para evitar loops nas requisições do useEffect de sincronização
   const perfilBuscado = useRef(false);
 
-  // Estado local para dados complementares do usuário (como o Nome do Confeiteiro)
   const [userData, setUserData] = useState({
     nome: 'Confeiteiro',
-    loja: { nomeFantasia: 'Minha Confeitaria', descricao: '', telefone: '', endereco: '' }, // 🟢 Agora é um objeto padrão!
+    loja: { nomeFantasia: 'Minha Confeitaria', descricao: '', telefone: '', endereco: '' },
     email: '',
     fotoLoja: ''
   });
@@ -42,7 +39,6 @@ const ConfeiteiroDashboard = () => {
     sunday: { open: '08:00', close: '14:00', isOpen: false }
   });
 
-  // 1. Extração de dados segura e isolada para evitar loops
   const extrairDadosUsuario = useCallback(() => {
     const rawStorage = localStorage.getItem('user');
     if (!rawStorage) return { nome: 'Confeiteiro', loja: 'Minha Confeitaria', email: '', fotoLoja: '' };
@@ -50,12 +46,10 @@ const ConfeiteiroDashboard = () => {
     try {
       const parsed = JSON.parse(rawStorage);
       console.log("Dados do usuário logado:", parsed);
-      // Normaliza se o objeto vier dentro de .user, .data ou na raiz
       const dadosReais = parsed.user || parsed.data || parsed;
 
       const nomeConfeiteiro = dadosReais.nome || dadosReais.nomeConfeiteiro || dadosReais.name || parsed.nome || 'Confeiteiro';
       
-      // Varredura profunda para encontrar o nome da loja
       const nomeDaLoja = 
         dadosReais.loja?.nomeFantasia || 
         parsed.loja?.nomeFantasia || 
@@ -65,7 +59,6 @@ const ConfeiteiroDashboard = () => {
         parsed.nomeLoja || 
         'Minha Confeitaria';
 
-      // Varredura para a foto (pode vir como foto_url, fotoUrl ou imagem)
       const foto = dadosReais.loja?.fotoUrl || dadosReais.fotoUrl || dadosReais.fotoLoja || parsed.fotoLoja || '';
 
       return {
@@ -80,7 +73,6 @@ const ConfeiteiroDashboard = () => {
     }
   }, []);
 
-  // 2. Unificação dos dados (Une o Contexto Global com o LocalStorage)
   const perfilUnificado = useMemo(() => {
     const nomeLoja = dadosLoja?.nomeFantasia || 
                      (typeof userData.loja === 'object' ? userData.loja?.nomeFantasia : userData.loja) || 
@@ -103,7 +95,6 @@ const ConfeiteiroDashboard = () => {
     navigate('/docelivery/confeiteiro/cadastro');
   };
 
-  // 3. Efeito de sincronização inicial e API - Executa APENAS na montagem do componente
   useEffect(() => {
     const token = localStorage.getItem('userToken') || localStorage.getItem('token');
     const userEmail = localStorage.getItem('userEmail');
@@ -123,20 +114,18 @@ const ConfeiteiroDashboard = () => {
     window.addEventListener('storage', handleSync);
 
     const refreshProfile = async () => {
-      // 🟢 SOLUÇÃO ANTILOOP: Se já buscou nesta instância do componente, bloqueia chamadas repetidas
       if (perfilBuscado.current) return;
 
       if (token && userEmail) {
         try {
-          perfilBuscado.current = true; // Ativa a trava antes da requisição
+          perfilBuscado.current = true;
           const profile = await AuthService.fetchAndSaveProfile(userEmail, token);
           setUserData(extrairDadosUsuario());
 
-          // Sincroniza o contexto global com os dados da API
           if (profile && atualizarDadosLoja) {
             const lojaInfo = profile.loja || profile;
             atualizarDadosLoja({
-              id: lojaInfo.id || null, // ID real da loja
+              id: lojaInfo.id || null,
               nome: lojaInfo.nomeFantasia || lojaInfo.nomeLoja || '',
               descricao: lojaInfo.descricao || '',
               cnpj: lojaInfo.cnpj || '',
@@ -148,7 +137,7 @@ const ConfeiteiroDashboard = () => {
           }
         } catch (error) {
           console.warn('Não foi possível atualizar perfil do confeiteiro no dashboard:', error);
-          perfilBuscado.current = false; // Destrava se der erro real para poder tentar novamente
+          perfilBuscado.current = false;
         }
       }
     };
@@ -164,9 +153,8 @@ const ConfeiteiroDashboard = () => {
       window.removeEventListener('localStorageUpdate', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, [navigate, extrairDadosUsuario, atualizarDadosLoja]); // removido userData.loja para evitar loop
+  }, [navigate, atualizarDadosLoja, extrairDadosUsuario]);
 
-  // 4. Verificação de Horário Isolada (Sem recriar loops com estados)
   useEffect(() => {
     const verificarStatusLoja = () => {
       const now = new Date();
@@ -291,18 +279,18 @@ const ConfeiteiroDashboard = () => {
     <div className={Styles.dashboardContainer}>
       <aside className={`${Styles.sidebar} ${sidebarOpen ? Styles.open : Styles.closed}`}>
         <div className={Styles.sidebarHeader}>
-      <img 
-          src={
-            perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo
-              ? (String(perfilUnificado.fotoLoja).startsWith('http') 
-                  ? perfilUnificado.fotoLoja 
-                  : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`)
-              : AppLogo
-          } 
-          alt="Logo da loja" 
-          className={Styles.sidebarLogo}
-          onError={(e) => { e.target.src = AppLogo; }}
-        />
+          <img 
+            src={
+              perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo
+                ? (String(perfilUnificado.fotoLoja).startsWith('http') 
+                    ? perfilUnificado.fotoLoja 
+                    : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`)
+                : AppLogo
+            } 
+            alt="Logo da loja" 
+            className={Styles.sidebarLogo}
+            onError={(e) => { e.target.src = AppLogo; }}
+          />
           <div className={Styles.sidebarBrand}>
             <h2>Docelivery</h2>
             <span>{perfilUnificado.loja}</span>
@@ -343,66 +331,11 @@ const ConfeiteiroDashboard = () => {
               </p>
             </div>
           </div>
-          
-          <div className={Styles.headerRight}>
-            <div className={Styles.storeStatus}>
-              <span className={Styles.statusLabel}>Loja:</span>
-              <div className={`${Styles.autoStatus} ${storeOpen ? Styles.open : Styles.closed}`}>
-                <div className={Styles.statusIndicator}></div>
-                <span className={Styles.statusText}>{storeOpen ? 'Aberta' : 'Fechada'}</span>
-                <small className={Styles.autoLabel}>Automático</small>
-              </div>
-            </div>
-            
-            <button className={Styles.notificationBtn} onClick={() => setShowNotifications(!showNotifications)}>
-              <IoNotifications size={20} />
-              <span className={Styles.notificationBadge}>3</span>
-            </button>
-            
-            <div className={Styles.userProfile}>
-              <div style={{ textAlign: 'right', marginRight: '10px' }}>
-                <div style={{ fontWeight: '600', color: '#8a2be2', fontSize: '0.9rem' }}>
-                  {perfilUnificado.nome}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                  {perfilUnificado.loja}
-                </div>
-              </div>
-              <div className={Styles.avatar} style={{ overflow: 'hidden' }}>
-                {perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo ? (
-                  <img 
-                    src={
-                      String(perfilUnificado.fotoLoja).startsWith('http') 
-                        ? perfilUnificado.fotoLoja 
-                        : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`
-                    } 
-                    alt="Avatar" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                ) : (
-                  perfilUnificado.nome?.charAt(0).toUpperCase() || '🧁'
-                )}
-              </div>
-            </div>
-          </div>
         </header>
-
         <main className={Styles.content}>
-          <div className={Styles.contentWrapper}>
-            {renderConteudo()}
-          </div>
+          {renderConteudo()}
         </main>
       </div>
-      
-      {showNotifications && (
-        <div className={Styles.notificationsDropdown}>
-          <h3>Notificações</h3>
-          <div className={Styles.notificationItem}><span>Novo pedido recebido</span><small>2 min atrás</small></div>
-          <div className={Styles.notificationItem}><span>Pagamento confirmado</span><small>15 min atrás</small></div>
-          <div className={Styles.notificationItem}><span>Produto em falta no estoque</span><small>1 hora atrás</small></div>
-        </div>
-      )}
     </div>
   );
 };

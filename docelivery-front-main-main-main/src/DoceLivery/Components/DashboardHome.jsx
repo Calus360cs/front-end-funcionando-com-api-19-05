@@ -9,19 +9,15 @@ import SalesChart from './SalesChart';
 import VendasTempoReal from '../Components/VendasTempoReal';
 
 const DashboardHome = ({ editMode, userData }) => {
-    // 🟢 Mantemos o useStore caso queira usar as outras propriedades, mas NÃO vamos disparar o updateStoreData no fluxo automático
     const { storeData, updateStoreData } = useStore();
     const [editingField, setEditingField] = useState(null);
     
-    // ESTADOS REAIS DA API
     const [pedidosBanco, setPedidosBanco] = useState([]);
     const [loading, setLoading] = useState(true);
     const [confeiteiroId, setConfeiteiroId] = useState(null);
 
-    // CONTROLE ANTILOOP: Impede que o efeito execute de forma concorrente
     const requisicaoFeita = useRef(false);
 
-    // ESTADO INICIAL DOS DADOS DA LOJA/CONFEITEIRO (O que realmente renderiza na tela)
     const [displayStoreData, setDisplayStoreData] = useState({
         nomeConfeiteiro: '',
         name: '', 
@@ -32,7 +28,6 @@ const DashboardHome = ({ editMode, userData }) => {
         fotoUrl: ''
     });
 
-    // 1. Garante a captura do ID do Confeiteiro de forma segura
     useEffect(() => {
         const id = AuthService.getUserId();
         if (id) {
@@ -42,7 +37,6 @@ const DashboardHome = ({ editMode, userData }) => {
         }
     }, []);
 
-    // 2. CARREGAR DADOS DO BANCO DE DADOS (Pedidos + Dados do Confeiteiro/Loja)
     useEffect(() => {
         if (!confeiteiroId || requisicaoFeita.current) return;
 
@@ -63,7 +57,7 @@ const DashboardHome = ({ editMode, userData }) => {
                 if (dadosConfeiteiro) {
                     console.log("Dados do Confeiteiro retornados do Banco:", dadosConfeiteiro);
                     
-                    const lojaReal = dadosConfeiteiro.loja; // pode ser null
+                    const lojaReal = dadosConfeiteiro.loja;
 
                     setDisplayStoreData({
                         nomeConfeiteiro: dadosConfeiteiro.nome || 'Confeiteiro',
@@ -75,7 +69,6 @@ const DashboardHome = ({ editMode, userData }) => {
                         fotoUrl: lojaReal?.fotoUrl || lojaReal?.imagem || ''
                     });
 
-                    // Se a loja ainda não existe, avisa o usuário para configurar o perfil
                     if (!lojaReal || !lojaReal.id) {
                         console.warn('Loja ainda não cadastrada. O confeiteiro precisa preencher o Perfil da Loja.');
                     }
@@ -104,10 +97,8 @@ const DashboardHome = ({ editMode, userData }) => {
         };
 
         buscarDadosDashboard();
+    }, [confeiteiroId]); 
 
-    }, [confeiteiroId, userData, storeData]); 
-
-    // 3. PROCESSAMENTO MATEMÁTICO REAL DOS PEDIDOS DO BANCO
     const kpisCalculados = useMemo(() => {
         const novosEPendentes = pedidosBanco.filter(p => p.status === 'NOVO' || p.status === 'PENDENTE');
         const agendadosProximos = pedidosBanco.filter(p => p.agendado === true || p.status === 'AGENDADO');
@@ -139,7 +130,6 @@ const DashboardHome = ({ editMode, userData }) => {
         { name: 'Dom', vendas: kpisCalculados.vendasHojeValor }
     ], [kpisCalculados.vendasHojeValor]);
 
-    // O updateStoreData só roda aqui se você clicar manualmente para EDITAR o campo na tela
     const handleEdit = async (field, value) => {
         const novosDadosVisuais = { ...displayStoreData, [field]: value };
         setDisplayStoreData(novosDadosVisuais);
@@ -233,7 +223,6 @@ const DashboardHome = ({ editMode, userData }) => {
                 </div>
             </div>
             
-            {/* GRID DE KPIS */}
             <div className={Styles.kpiGrid}>
                 <div className={Styles.kpiCard + ' ' + Styles.pedidosCard}>
                     <div className={Styles.cardContent}>

@@ -11,6 +11,24 @@ import ImageUploader from './ImageUploader';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
+const buildImageSrc = (rawImage) => {
+    if (!rawImage) return null;
+    const src = String(rawImage).trim();
+    if (!src) return null;
+    if (src.startsWith('http') || src.startsWith('//')) return src;
+    if (src.startsWith('/uploads/') || src.startsWith('/imagens/') || src.startsWith('/')) {
+        return `${API_BASE_URL}${src}`;
+    }
+    return `${IMAGE_URL}/${src}`;
+};
+
+const getProdutoImageSrc = (produto) => {
+    const raw = produto?.imagemUrl || produto?.imagem || produto?.fotoUrl || produto?.imageUrl;
+    const src = buildImageSrc(raw);
+    if (src) return src;
+    return IMAGE_MAP[produto?.imagem] || IMAGE_MAP[produto?.imagemUrl] || IMAGE_MAP['brigadeiro'];
+};
+
 const CardapioManager = () => {
     const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -84,16 +102,18 @@ const CardapioManager = () => {
     const carregarProdutos = useCallback(async () => {
         if (!confeiteiroId) return;
         try {
-            // Usando o ProdutoService para padronização
             const data = await ProdutoService.getProdutosDaLoja(confeiteiroId);
-            setProdutosDisponiveis(Array.isArray(data) ? data : []);
-            
-            // Tenta carregar os kits se houver endpoint, ou usa os existentes
-            const kits = await ApiService.get(`/produtos/kit/confeiteiro/${confeiteiroId}`).catch(() => []);
-            const kitsFiltrados = Array.isArray(kits)
-                ? kits.filter(item => item && (Array.isArray(item.produtosIds) || Array.isArray(item.produtos) || typeof item.precoTotal === 'number'))
+            // Filtra kits da lista de produtos (categoriaId 12 = Kit Festa) para evitar duplicidade
+            const apenasP = Array.isArray(data)
+                ? data.filter(p => {
+                    const catId = typeof p.categoria === 'object' ? p.categoria?.id : Number(p.categoriaId || p.categoria);
+                    return catId !== 12;
+                })
                 : [];
-            setCombos(kitsFiltrados);
+            setProdutosDisponiveis(apenasP);
+
+            const kitsData = await ApiService.get(`/produtos/kit/confeiteiro/${confeiteiroId}`).catch(() => []);
+            setCombos(Array.isArray(kitsData) ? kitsData : []);
         } catch (error) {
             console.error("Erro ao carregar dados do cardápio:", error);
         }
@@ -123,7 +143,7 @@ const CardapioManager = () => {
                 imagemCustom: null,
                 produtos: item.produtosIds || []
             });
-            setPreviewUrl(item.imagemUrl ? `${IMAGE_URL}/${item.imagemUrl}` : null);
+            setPreviewUrl(getProdutoImageSrc(item));
         } else {
             setFormData({
                 nome: '', preco: '', estoque: '0', categoryId: null,
@@ -203,12 +223,11 @@ const CardapioManager = () => {
         const logadoConfeiteiroId = usuarioLogado.id || parseInt(confeiteiroId, 10);
 
         if (!logadoConfeiteiroId) {
-            alert('ID do confeiteiro não encontrado. Verifique se o login salvou os dados corretamente.');
+            alert('ID do confeiteiro não encontrado.');
             return;
         }
 
         const produtosSelecionados = produtosDisponiveis.filter(produto => formData.produtos.includes(produto.id));
-
         if (produtosSelecionados.length === 0) {
             alert('Selecione ao menos um produto para montar o kit.');
             return;
@@ -219,35 +238,26 @@ const CardapioManager = () => {
             descricao: formData.descricao,
             preco: parseFloat(formData.preco) || 0,
             confeiteiroId: parseInt(logadoConfeiteiroId, 10),
-            categoriaId: 12, // ID fixo para Kit Festa
+            categoriaId: 12,
             itens: produtosSelecionados.map(produto => ({
                 produtoId: produto.id,
                 quantidade: 1
             }))
         };
 
-        const formData = new FormData();
-        formData.append('imagem', arquivoImagem); 
-        formData.append('kit', new Blob([JSON.stringify(dadosDoKit)], { type: 'application/json' }));
-
-        console.log('Enviando Kit e Imagem juntas...', dadosDoKit);
+        // Usa nome diferente para não sobrescrever o estado formData
+        const multipart = new FormData();
+        if (arquivoImagem) multipart.append('imagem', arquivoImagem);
+        multipart.append('kit', new Blob([JSON.stringify(dadosDoKit)], { type: 'application/json' }));
 
         try {
-            const token = localStorage.getItem('userToken') || localStorage.getItem('token');
-            const resposta = await ApiService.post('/produtos/kit', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            console.log('Kit Salvo com Sucesso!', resposta);
-            alert('Kit e Imagem cadastrados com sucesso!');
+            await ApiService.post('/produtos/kit', multipart);
+            alert('Kit cadastrado com sucesso!');
             setShowModal(false);
             carregarProdutos();
         } catch (error) {
-            console.error('Erro ao salvar o kit com foto:', error);
-            alert('Erro ao salvar o kit com foto. Verifique o console para mais detalhes.');
+            console.error('Erro ao salvar o kit:', error);
+            alert('Erro ao salvar o kit. Verifique o console.');
         }
     };
 
@@ -408,12 +418,19 @@ const CardapioManager = () => {
                 </div>
             </div>
 
+            {/* ══ SEÇÃO: PRODUTOS ══ */}
+            <div className={Styles.secaoHeader}>
+                <span className={Styles.secaoIcone}>🧁</span>
+                <h3>Produtos</h3>
+                <span className={Styles.secaoBadge}>{produtosFiltrados.length}</span>
+            </div>
+
             <div className={`${Styles.produtosGrid} ${viewMode === 'list' ? Styles.listView : ''}`}>
                 {produtosFiltrados.length > 0 ? (
                     produtosFiltrados.map(produto => (
                         <div key={produto.id} className={`${Styles.produtoCard} ${!produto.disponivel ? Styles.indisponivel : ''}`}>
                             <div className={Styles.produtoImagem}>
-                                <img src={produto.imagemCustom || (produto.imagemUrl ? `${IMAGE_URL}/${produto.imagemUrl}` : IMAGE_MAP[produto.imagem]) || IMAGE_MAP['brigadeiro']} alt={produto.nome} />
+                                <img src={produto.imagemCustom || getProdutoImageSrc(produto)} alt={produto.nome} />
                                 {!produto.disponivel && <div className={Styles.indisponivelOverlay}>Indisponível</div>}
                             </div>
                             <div className={Styles.produtoInfo}>
@@ -455,10 +472,15 @@ const CardapioManager = () => {
                 )}
             </div>
 
-            {/* 3. SEÇÃO: KITS E COMBOS MONTADOS (Kits criados no Manager) */}
-            {combos.length > 0 && (
-                <section className={`${Styles.managerSection} ${Styles.kitsSection}`}>
-                    <h3 className={Styles.sectionTitle}><IoGift /> Combos Criados (Personalizados)</h3>
+            {/* ══ SEÇÃO: KITS ══ */}
+            <div className={Styles.secaoHeader} style={{ marginTop: 16 }}>
+                <span className={Styles.secaoIcone}>🎁</span>
+                <h3>Kits & Combos</h3>
+                <span className={`${Styles.secaoBadge} ${Styles.secaoBadgeKit}`}>{combos.length}</span>
+            </div>
+
+            {combos.length > 0 ? (
+                <section className={Styles.kitsSection}>
                     <div className={Styles.combosGrid}>
                         {combos.map(combo => (
                             <div key={combo.id} className={Styles.comboCard}>
@@ -480,6 +502,11 @@ const CardapioManager = () => {
                         ))}
                     </div>
                 </section>
+            ) : (
+                <div className={Styles.emptyKits}>
+                    <span>🎁</span>
+                    <p>Nenhum kit cadastrado ainda. Clique em <strong>Kit Festa</strong> para criar.</p>
+                </div>
             )}
 
             {showModal && (
@@ -689,7 +716,7 @@ const CardapioManager = () => {
                                                 }}
                                             >
                                                 <div className={Styles.kitFestaItemImage}>
-                                                    <img src={produto.imagemUrl ? `${IMAGE_URL}/${produto.imagemUrl}` : IMAGE_MAP[produto.imagem] || IMAGE_MAP['brigadeiro']} alt={produto.nome} />
+                                                    <img src={getProdutoImageSrc(produto)} alt={produto.nome} />
                                                 </div>
                                                 <div className={Styles.kitFestaItemInfo}>
                                                     <span className={Styles.itemName}>{produto.nome}</span>

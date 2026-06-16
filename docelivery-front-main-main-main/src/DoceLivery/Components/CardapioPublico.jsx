@@ -1,30 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import ProductService from '../services/produtoService';
+import ApiService from '../services/api';
 import Styles from './CardapioPublico.module.css';
 import { useCartStore } from '../context/CartContext.jsx';
-import { IoCartOutline, IoCalendarOutline, IoCloseOutline, IoInformationCircleOutline, IoStorefront } from 'react-icons/io5';
+import { IoCartOutline, IoCalendarOutline, IoCloseOutline, IoInformationCircleOutline, IoStorefront, IoGift } from 'react-icons/io5';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
+const buildImageSrc = (rawImage) => {
+    if (!rawImage) return null;
+    const src = String(rawImage).trim();
+    if (!src) return null;
+    if (src.startsWith('http') || src.startsWith('//')) return src;
+    if (src.startsWith('/uploads/') || src.startsWith('/imagens/') || src.startsWith('/') || src.startsWith('uploads/') || src.startsWith('imagens/')) {
+        return src.startsWith('/') ? `${API_BASE_URL}${src}` : `${API_BASE_URL}/${src}`;
+    }
+    return `${IMAGE_URL}/${src}`;
+};
+
+const getStoreImageSrc = (store) => {
+    return buildImageSrc(store?.imagem || store?.logoUrl || store?.fotoUrl || store?.fotoLoja);
+};
+
+const getImageSrc = (produto) => {
+    return buildImageSrc(produto?.imagemUrl || produto?.imagem || produto?.fotoUrl || produto?.imageUrl);
+};
+
 const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
     const [produtos, setProdutos] = useState([]);
+    const [kits, setKits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [produtoDetalhe, setProdutoDetalhe] = useState(null);
     const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
+
+    const lojaLogoSrc = getStoreImageSrc(loja);
+    const lojaNome = loja?.nome || loja?.nomeFantasia || loja?.nomeLoja || 'Cardápio';
 
     const { addItemToCart, toggleCart } = useCartStore();
 
     useEffect(() => {
         const fetchMenu = async () => {
-            const lojaId = Number(loja?.id || loja?.confeiteiroId);
-            if (!lojaId) { setLoading(false); return; }
+            const idParaBuscar = Number(loja?.confeiteiroId) || Number(loja?.id) || Number(loja?.idConfeiteiro);
+
+            if (!idParaBuscar) {
+                setLoading(false);
+                return;
+            }
             try {
                 setLoading(true);
-                const data = await ProductService.getProdutosDaLoja(lojaId);
-                setProdutos(data || []);
+
+                // Busca produtos simples, excluindo kits (categoriaId=12) para evitar duplicidade
+                const dataProdutos = await ProductService.getProdutosDaLoja(idParaBuscar).catch(() => []);
+                const produtosSemKits = Array.isArray(dataProdutos)
+                    ? dataProdutos.filter(p => {
+                        const catId = typeof p.categoria === 'object' ? p.categoria?.id : Number(p.categoriaId || p.categoria);
+                        return catId !== 12;
+                    })
+                    : [];
+                const produtosUnicos = produtosSemKits.reduce((acc, item) => {
+                    if (!acc.some(prod => prod.id === item.id)) acc.push(item);
+                    return acc;
+                }, []);
+                setProdutos(produtosUnicos);
+
+                // Busca kits separadamente pela rota /produtos/kit/confeiteiro/{id}
+                const dataKits = await ApiService.get(`/produtos/kit/confeiteiro/${idParaBuscar}`).catch(() => []);
+                setKits(Array.isArray(dataKits) ? dataKits : []);
+
             } catch (error) {
-                console.error('Erro ao carregar cardápio público:', error);
+                console.error('[CardapioPublico] Erro ao carregar cardápio:', error);
             } finally {
                 setLoading(false);
             }
@@ -32,6 +77,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
         fetchMenu();
     }, [loja]);
 
+    // Mostra todos os produtos (disponivel true, null ou undefined)
     const produtosDisponiveis = produtos.filter(p => p.disponivel !== false);
 
     // Monta lista de categorias únicas a partir dos produtos
@@ -51,13 +97,6 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
             return cat === categoriaAtiva;
         });
 
-    const getImageSrc = (produto) => {
-        if (!produto.imagemUrl) return null;
-        return String(produto.imagemUrl).startsWith('http')
-            ? produto.imagemUrl
-            : `${IMAGE_URL}/${produto.imagemUrl}`;
-    };
-
     const handleAdicionarAoCarrinho = (produto) => {
         addItemToCart(
             {
@@ -66,7 +105,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 price: produto.preco,
                 imageUrl: getImageSrc(produto),
             },
-            { id: loja.id, name: loja.nome },
+            { id: loja?.confeiteiroId || loja?.id, name: loja?.nome },
             1
         );
         toggleCart();
@@ -87,10 +126,20 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
             {/* CABEÇALHO DA LOJA */}
             <div className={Styles.lojaHeader}>
                 <div className={Styles.lojaHeaderContent}>
-                    <IoStorefront size={22} className={Styles.lojaIcon} />
+                    {lojaLogoSrc ? (
+                        <img
+                            src={lojaLogoSrc}
+                            alt={lojaNome}
+                            className={Styles.lojaLogo}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                    ) : (
+                        <IoStorefront size={22} className={Styles.lojaIcon} />
+                    )}
                     <div>
-                        <h2 className={Styles.lojaNome}>{loja?.nome || 'Cardápio'}</h2>
+                        <h2 className={Styles.lojaNome}>{lojaNome}</h2>
                         {loja?.descricao && <p className={Styles.lojaDesc}>{loja.descricao}</p>}
+                        {loja?.endereco && <p className={Styles.lojaDesc}>📍 {loja.endereco}</p>}
                     </div>
                 </div>
             </div>
@@ -129,12 +178,15 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 </div>
             )}
 
-            {/* GRID DE PRODUTOS */}
+            {/* ══ SEÇÃO PRODUTOS ══ */}
             <div className={Styles.menuSection}>
-                <h3 className={Styles.sectionTitle}>
-                    {categoriaAtiva === 'Todos' ? 'Todos os Produtos' : categoriaAtiva}
-                    <span className={Styles.countBadge}>{produtosFiltrados.length}</span>
-                </h3>
+                <div className={Styles.secaoHeader}>
+                    <span className={Styles.secaoIcone}>🧁</span>
+                    <h3 className={Styles.sectionTitle}>
+                        {categoriaAtiva === 'Todos' ? 'Produtos' : categoriaAtiva}
+                        <span className={Styles.countBadge}>{produtosFiltrados.length}</span>
+                    </h3>
+                </div>
 
                 {produtosFiltrados.length > 0 ? (
                     <div className={Styles.grid}>
@@ -200,6 +252,62 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                     <div className={Styles.emptyState}>
                         <span>🍬</span>
                         <p>Nenhum produto disponível nesta categoria.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* ══ SEÇÃO KITS ══ */}
+            <div className={Styles.menuSection}>
+                <div className={Styles.secaoHeader}>
+                    <span className={Styles.secaoIcone}>🎁</span>
+                    <h3 className={Styles.sectionTitle}>
+                        Kits & Combos
+                        <span className={`${Styles.countBadge} ${Styles.countBadgeKit}`}>{kits.length}</span>
+                    </h3>
+                </div>
+
+                {kits.length > 0 ? (
+                    <div className={Styles.kitsGrid}>
+                        {kits.map(kit => (
+                            <div key={kit.id} className={Styles.kitCard}>
+                                <div className={Styles.kitIconBox}>
+                                    <IoGift size={28} />
+                                </div>
+                                <div className={Styles.kitInfo}>
+                                    <h4 className={Styles.kitNome}>{kit.nome}</h4>
+                                    {kit.descricao && <p className={Styles.kitDesc}>{kit.descricao}</p>}
+                                    {kit.itens && kit.itens.length > 0 && (
+                                        <div className={Styles.kitItens}>
+                                            {kit.itens.slice(0, 3).map((item, i) => (
+                                                <span key={i} className={Styles.kitItemPill}>
+                                                    {item.produto?.nome || item.nome || `Item ${i + 1}`}
+                                                </span>
+                                            ))}
+                                            {kit.itens.length > 3 && (
+                                                <span className={Styles.kitItemPill}>+{kit.itens.length - 3} mais</span>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className={Styles.kitFooter}>
+                                        <span className={Styles.kitPreco}>
+                                            R$ {Number(kit.precoTotal || kit.preco || 0).toFixed(2)}
+                                        </span>
+                                        <button
+                                            className={Styles.btnEncomendarKit}
+                                            onClick={() => onOpenEncomendaModal(true)}
+                                        >
+                                            <IoCalendarOutline size={15} />
+                                            Encomendar Kit
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className={Styles.emptyState}>
+                        <span>🎁</span>
+                        <p>Nenhum kit disponível nesta confeitaria.</p>
                     </div>
                 )}
             </div>

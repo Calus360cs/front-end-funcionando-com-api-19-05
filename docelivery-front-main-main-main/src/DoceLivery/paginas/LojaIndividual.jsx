@@ -24,22 +24,31 @@ const LojaIndividual = () => {
     // FUNÇÃO CORRETIVA: Centraliza o mapeamento e remove a duplicação de fallbacks
     const mapearDadosLoja = useCallback((dadosBrutos) => {
         const info = dadosBrutos?.loja || dadosBrutos || {};
-        const rawImagem = info.imagem || info.imagemUrl || info.logoUrl;
+        const rawImagem = info.imagem || info.imagemUrl || info.logoUrl || info.fotoUrl;
+
+        // confeiteiroId: ID do usuário confeiteiro (dono da loja)
+        // Pode vir como dadosBrutos.id (quando é um ConfeiteiroDTO)
+        // ou como info.confeiteiroId / info.confeiteiro.id (quando é um LojaDTO)
+        const confeiteiroId = dadosBrutos?.id 
+            || info?.confeiteiroId 
+            || info?.confeiteiro?.id 
+            || Number(lojaId);
 
         return {
-            id: info.id || Number(lojaId), // ID real da loja vindo do objeto da API
-            nome: info.nomeFantasia || info.nomeLoja || info.nome || 'Confeitaria',
-            telefone: info.telefone || dadosBrutos?.telefone || info.phone || '',
-            endereco: info.endereco || info.address || (info.logradouro ? `${info.logradouro}, ${info.numero}` : ''),
-            descricao: info.descricao || info.description || '',
-            avaliacao: dadosBrutos?.avaliacao || info.rating || '5.0',
-            totalAvaliacoes: dadosBrutos?.totalAvaliacoes || info.reviews || '0',
-            imagem: rawImagem 
-                ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:') 
-                    ? rawImagem 
+            id: info.id || null,              // ID real da entidade Loja
+            confeiteiroId,                     // ID do confeiteiro — usado para buscar produtos
+            nome: info.nomeFantasia || info.nomeLoja || info.nome || dadosBrutos?.nome || 'Confeitaria',
+            telefone: info.telefone || dadosBrutos?.telefone || '',
+            endereco: info.endereco || (info.logradouro ? `${info.logradouro}, ${info.numero}` : ''),
+            descricao: info.descricao || dadosBrutos?.descricao || '',
+            avaliacao: dadosBrutos?.avaliacao || '5.0',
+            totalAvaliacoes: dadosBrutos?.totalAvaliacoes || '0',
+            imagem: rawImagem
+                ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:')
+                    ? rawImagem
                     : `${IMAGE_URL}/${rawImagem}`)
                 : IMAGE_MAP['brigadeiro'],
-            horarioFuncionamento: info.horarioFuncionamento || info.hours || {
+            horarioFuncionamento: info.horarioFuncionamento || {
                 segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
                 quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
                 sexta: '08:00 - 18:00', sabado: '08:00 - 16:00',
