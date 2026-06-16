@@ -64,9 +64,42 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 }, []);
                 setProdutos(produtosUnicos);
 
+                const produtosMap = new Map(produtosUnicos.map(produto => [Number(produto.id), produto]));
+
                 // Busca kits separadamente pela rota /produtos/kit/confeiteiro/{id}
                 const dataKits = await ApiService.get(`/produtos/kit/confeiteiro/${idParaBuscar}`).catch(() => []);
-                setKits(Array.isArray(dataKits) ? dataKits : []);
+                const kitsComProdutos = Array.isArray(dataKits)
+                    ? dataKits.map(kit => {
+                        const itensOriginais = Array.isArray(kit.itens) ? kit.itens : [];
+                        const produtosIds = Array.isArray(kit.produtosIds) ? kit.produtosIds : [];
+
+                        let itensNormalizados = itensOriginais.map(item => {
+                            const produtoId = Number(item?.produtoId || item?.id || item?.produto?.id);
+                            const produto = produtosMap.get(produtoId) || item?.produto;
+                            return {
+                                ...item,
+                                produto,
+                                nome: item?.nome || produto?.nome
+                            };
+                        });
+
+                        if (itensNormalizados.length === 0 && produtosIds.length > 0) {
+                            itensNormalizados = produtosIds.map(id => {
+                                const produtoId = Number(id);
+                                const produto = produtosMap.get(produtoId);
+                                return produto
+                                    ? { produtoId, produto, nome: produto.nome }
+                                    : { produtoId };
+                            });
+                        }
+
+                        return {
+                            ...kit,
+                            itens: itensNormalizados
+                        };
+                    })
+                    : [];
+                setKits(kitsComProdutos);
 
             } catch (error) {
                 console.error('[CardapioPublico] Erro ao carregar cardápio:', error);

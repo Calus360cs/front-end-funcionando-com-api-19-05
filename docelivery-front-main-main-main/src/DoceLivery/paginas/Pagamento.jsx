@@ -10,6 +10,7 @@ import { SiPix } from 'react-icons/si';
 import { useCartStore } from '../context/CartContext';
 import { useDashboard } from '../context/DashboardContext';
 import OrderService from '../services/orderService';
+import PaymentService from '../services/paymentService'; // Importação adicionada aqui
 import AuthService from '../services/authService';
 import Styles from './Pagamento.module.css';
 
@@ -21,7 +22,7 @@ const CUPONS_VALIDOS = {
 };
 
 const PAYMENT_METHODS = [
-    { id: 'PIX',      label: 'Pix',              icon: <SiPix size={20} />,          desc: 'Aprovação imediata' },
+    { id: 'PIX',      label: 'Pix',               icon: <SiPix size={20} />,          desc: 'Aprovação imediata' },
     { id: 'CREDITO',  label: 'Crédito',           icon: <FaCreditCard size={20} />,   desc: 'Até 12x sem juros' },
     { id: 'DEBITO',   label: 'Débito',            icon: <FaCreditCard size={20} />,   desc: 'Débito à vista' },
     { id: 'DINHEIRO', label: 'Dinheiro',          icon: <FaMoneyBillWave size={20} />,desc: 'Pagar na entrega' },
@@ -53,7 +54,10 @@ const Pagamento = () => {
 
     // Dados do checkout
     const checkoutData = useMemo(() => JSON.parse(localStorage.getItem('checkoutData') || '{}'), []);
-    const itens   = cartItems.length > 0 ? cartItems : (checkoutData.cartItems || []);
+    const itens = useMemo(
+        () => cartItems.length > 0 ? cartItems : (checkoutData.cartItems || []),
+        [cartItems, checkoutData]
+    );
     const loja    = activeStore || checkoutData.activeStore || null;
     const deliveryFeeBase = parseFloat(checkoutData.deliveryFee ?? 5.00);
 
@@ -188,8 +192,26 @@ const Pagamento = () => {
                     precoUnitario:  item.price
                 }))
             };
+            
+            // 1. Envia o pedido para o banco de dados
             const res = await OrderService.createOrder(novoPedido);
-            localStorage.setItem('currentOrder', JSON.stringify(res?.data || res));
+            const pedidoSalvo = res?.data || res;
+
+            // 2. Prepara os dados para o PagamentoController do Mercado Pago
+            const dadosPagamento = {
+                valor: total,
+                tokenCartao: (metodo === 'CREDITO' || metodo === 'DEBITO') ? cardData.numero : null, 
+                email: usuario?.email || 'cliente@docelivery.com',
+                metodo: metodo.toLowerCase()
+            };
+
+            // 3. Processa o pagamento na API do Mercado Pago
+            console.log("Processando o pagamento via " + metodo);
+            const respostaPagamento = await PaymentService.processarPagamento(dadosPagamento);
+            console.log('Resposta do pagamento:', respostaPagamento);
+
+            // 4. Executa as limpezas de estado e localStorage originais do seu fluxo
+            localStorage.setItem('currentOrder', JSON.stringify(pedidoSalvo));
             adicionarVenda(total);
             clearCart();
             localStorage.removeItem('checkoutData');

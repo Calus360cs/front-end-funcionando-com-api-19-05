@@ -99,6 +99,19 @@ const CardapioManager = () => {
         return categoryMap[normalizeCategoryKey(stringValue)] || null;
     };
 
+    const getKitSelectedProductIds = (kitItem) => {
+        if (!kitItem) return [];
+        if (Array.isArray(kitItem.produtosIds) && kitItem.produtosIds.length > 0) {
+            return kitItem.produtosIds.map(id => Number(id)).filter(Boolean);
+        }
+        if (Array.isArray(kitItem.itens) && kitItem.itens.length > 0) {
+            return kitItem.itens
+                .map(item => Number(item?.produtoId || item?.id || item?.produto?.id))
+                .filter(Boolean);
+        }
+        return [];
+    };
+
     const carregarProdutos = useCallback(async () => {
         if (!confeiteiroId) return;
         try {
@@ -131,6 +144,7 @@ const CardapioManager = () => {
             // Protege quando item.categoria pode ser um objeto { id, nome }
             const categoriaNome = typeof item.categoria === 'object' ? item.categoria?.nome : item.categoria;
             const categoriaKey = normalizeCategoryKey(categoriaNome || '') || getCategoryKeyById(item.categoriaId);
+            const selecionados = getKitSelectedProductIds(item);
             setFormData({
                 nome: item.nome || '',
                 preco: item.preco ?? '',
@@ -141,7 +155,7 @@ const CardapioManager = () => {
                 disponivel: item.disponivel ?? true,
                 imagem: item.imagem || '',
                 imagemCustom: null,
-                produtos: item.produtosIds || []
+                produtos: selecionados
             });
             setPreviewUrl(getProdutoImageSrc(item));
         } else {
@@ -488,6 +502,14 @@ const CardapioManager = () => {
                                 <div className={Styles.comboInfo}>
                                     <h4>{combo.nome}</h4>
                                     <p>{combo.descricao}</p>
+                                    {getKitSelectedProductIds(combo).length > 0 && (
+                                        <p className={Styles.comboProdutos}>
+                                            <strong>Produtos:</strong> {getKitSelectedProductIds(combo)
+                                                .map(id => produtosDisponiveis.find(p => Number(p.id) === Number(id))?.nome)
+                                                .filter(Boolean)
+                                                .join(', ')}
+                                        </p>
+                                    )}
                                     <span className={Styles.comboPreco}>R$ {Number(combo.precoTotal || 0).toFixed(2)}</span>
                                 </div>
                                 <div className={Styles.comboActions}>
