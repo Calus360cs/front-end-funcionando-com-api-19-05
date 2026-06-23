@@ -10,7 +10,7 @@ import { SiPix } from 'react-icons/si';
 import { useCartStore } from '../context/CartContext';
 import { useDashboard } from '../context/DashboardContext';
 import OrderService from '../services/orderService';
-import PaymentService from '../services/paymentService'; // Importação adicionada aqui
+import PaymentService from '../services/paymentService';
 import AuthService from '../services/authService';
 import Styles from './Pagamento.module.css';
 
@@ -175,6 +175,8 @@ const Pagamento = () => {
         setIsProcessing(true);
         try {
             const usuario = AuthService.getCurrentUser();
+            
+            // 1. Envia o pedido para salvar na sua tabela local inicial via OrderService
             const novoPedido = {
                 cliente:              { id: usuario?.id },
                 loja:                 { id: Number(loja?.id || 4) },
@@ -193,32 +195,46 @@ const Pagamento = () => {
                 }))
             };
             
-            // 1. Envia o pedido para o banco de dados
             const res = await OrderService.createOrder(novoPedido);
             const pedidoSalvo = res?.data || res;
 
-            // 2. Prepara os dados para o PagamentoController do Mercado Pago
-            const dadosPagamento = {
-                valor: total,
-                tokenCartao: (metodo === 'CREDITO' || metodo === 'DEBITO') ? cardData.numero : null, 
-                email: usuario?.email || 'cliente@docelivery.com',
-                metodo: metodo.toLowerCase()
+            const dadosPagamentoDTO = {
+                id:              pedidoSalvo.id || null, // Repassa o ID gerado pelo banco para o webhook usar depois
+                clienteId:       Number(usuario?.id || 1), // 🧠 IDs enviados evitam o erro de id nulo!
+                lojaId:          Number(loja?.id || 2),    // 🧠 IDs enviados evitam o erro de id nulo!
+                nomeCliente:     usuario?.nome || clienteLocal.nome,
+                telefoneCliente: usuario?.telefone || "",
+                enderecoEntrega: enderecoFormatado,
+                status:          "NOVO",
+                total:           total, // O Java espera a propriedade com o nome 'total' (Record do PedidoDTO)
+                
+                // Dados adicionais que o Mercado Pago vai ler de dentro do DTO se necessário
+                email:           'TESTUSER8634487054543614069@testuser.com', // 🟢 Sua conta de teste do MP ativa!
+                tokenCartao:     (metodo === 'CREDITO' || metodo === 'DEBITO') ? cardData.numero : null,
+                metodo:          metodo.toLowerCase(),
+
+                itens: itens.map(item => ({
+                    produtoId:     item.id,
+                    nomeProduto:   item.name || item.title,
+                    quantidade:    parseInt(item.quantity) || 1,
+                    precoUnitario: parseFloat(item.price) || 0
+                }))
             };
 
-            // 3. Processa o pagamento na API do Mercado Pago
-            console.log("Processando o pagamento via " + metodo);
-            const respostaPagamento = await PaymentService.processarPagamento(dadosPagamento);
-            console.log('Resposta do pagamento:', respostaPagamento);
+            // 3. Dispara a requisição passando o DTO unificado completo
+            console.log("Processando o pagamento via " + metodo, dadosPagamentoDTO);
+            const respostaPagamento = await PaymentService.processarPagamento(dadosPagamentoDTO);
+            console.log('Resposta do pagamento recebida:', respostaPagamento);
 
-            // 4. Executa as limpezas de estado e localStorage originais do seu fluxo
+            // 4. Executa as limpezas de estado e redirecionamentos originais do seu fluxo
             localStorage.setItem('currentOrder', JSON.stringify(pedidoSalvo));
             adicionarVenda(total);
             clearCart();
             localStorage.removeItem('checkoutData');
             setPedidoConcluido(true);
         } catch (err) {
-            console.error(err);
-            alert('Erro ao processar pedido. Tente novamente.');
+            console.error("Erro detalhado no checkout:", err);
+            alert('Erro ao processar pedido. Verifique os dados e tente novamente.');
         } finally {
             setIsProcessing(false);
         }

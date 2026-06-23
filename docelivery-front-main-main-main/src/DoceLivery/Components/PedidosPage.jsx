@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import OrderService from '../services/orderService';
+import ApiService from '../services/api';
 import AuthService from '../services/authService';
 import PedidoCard from './PedidoCard';
 import Styles from './PedidosPage.module.css';
@@ -13,12 +14,23 @@ const PedidosPage = () => {
     const [loading, setLoading] = useState(true);
     const confeiteiroId = AuthService.getUserId();
 
-    // 1. Carregamento inicial da fila via HTTP (Mantido seu código original)
+    const carregarPedidos = useCallback(async () => {
+        try {
+            setLoading(true);
+            const dados = await OrderService.getFilaTrabalho(confeiteiroId);
+            setPedidos(dados || []);
+        } catch (error) {
+            console.error("Erro ao carregar pedidos:", error);
+            alert("Erro ao conectar com o servidor.");
+        } finally {
+            setLoading(false);
+        }
+    }, [confeiteiroId]);
+
     useEffect(() => {
         carregarPedidos();
-    }, []);
+    }, [carregarPedidos]);
 
-    // 2. CONEXÃO EM TEMPO REAL (Adicionado)
     useEffect(() => {
         if (!confeiteiroId) return;
 
@@ -74,26 +86,21 @@ const PedidosPage = () => {
         };
     }, [confeiteiroId]);
 
-    const carregarPedidos = async () => {
+    const atualizarStatusPedido = async (pedidoId, novoStatus) => {
         try {
-            setLoading(true);
-            const dados = await OrderService.getFilaTrabalho(confeiteiroId);
-            setPedidos(dados || []);
+            await ApiService.patch(`/pedidos/${pedidoId}`, { status: novoStatus });
+            carregarPedidos();
         } catch (error) {
-            console.error("Erro ao carregar pedidos:", error);
-            alert("Erro ao conectar com o servidor.");
-        } finally {
-            setLoading(false);
+            console.error("Erro ao atualizar status do pedido:", error);
+            throw error;
         }
     };
 
     const handleStatusChange = async (pedidoId, novoStatus) => {
         try {
-            // Removeu o carregarPedidos() daqui de dentro! 
-            // Motivo: O seu backend Java já dispara o evento via WebSocket no atualizarStatus.
-            // A própria resposta da rede vai atualizar a tela para você sem dar "piscar" de carregando.
-            await OrderService.atualizarStatus(pedidoId, novoStatus);
+            await atualizarStatusPedido(pedidoId, novoStatus);
         } catch (error) {
+            console.error("Erro ao atualizar status:", error);
             alert("Erro ao atualizar status.");
         }
     };

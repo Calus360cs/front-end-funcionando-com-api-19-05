@@ -3,7 +3,10 @@ import { IoSave, IoTime, IoImage, IoLocation } from 'react-icons/io5';
 import { useLoja } from '../context/LojaContext';
 import ImageUploader from './ImageUploader';
 import Styles from './PerfilLoja.module.css';
-import confeiteiroService, { atualizarPerfilLoja } from '../services/confeiteiroService';
+import confeiteiroService from '../services/confeiteiroService';
+import api from '../services/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const PerfilLoja = () => {
     const { dadosLoja, atualizarDadosLoja, atualizarHorarioFuncionamento } = useLoja();
@@ -179,25 +182,14 @@ const PerfilLoja = () => {
         e.preventDefault();
 
         const userId = localStorage.getItem('userId');
-        // Usa o ID real da loja se existir, senão usa o userId (backend cria e vincula a loja)
         const idParaAtualizar = lojaIdReal || userId;
-        
+
         if (!idParaAtualizar) {
             alert('Não foi possível identificar o usuário. Faça login novamente.');
             return;
         }
-        
-        let urlImagem = '';
-        if (formData.imagem) {
-            if (typeof formData.imagem === 'object') {
-                urlImagem = formData.imagem.url || formData.imagem.fotoUrl || '';
-            } else {
-                urlImagem = formData.imagem;
-            }
-        }
 
         const cnpjLimpo = formData.cnpj ? formData.cnpj.replace(/\D/g, '') : '';
-
         if (!cnpjLimpo) {
             alert("Por favor, preencha o CNPJ da sua confeitaria.");
             return;
@@ -205,49 +197,77 @@ const PerfilLoja = () => {
 
         const dadosDaLoja = {
             nomeFantasia: formData.nome,
-            cnpj: cnpjLimpo, 
+            cnpj: cnpjLimpo,
             telefone: formData.telefone ? formData.telefone.replace(/\D/g, '') : null,
             descricao: formData.descricao || '',
             endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`,
-            fotoUrl: urlImagem,
             confeiteiro: {
-                id: Number(userId)  // sempre o ID do confeiteiro, não da loja
+                id: Number(userId)
             }
         };
 
+        // Monta o FormData para suportar upload de imagem (multipart/form-data)
+        const payload = new FormData();
+        payload.append(
+            'dados',
+            new Blob([JSON.stringify(dadosDaLoja)], { type: 'application/json' })
+        );
+
+        // Se o usuário selecionou um novo arquivo de imagem, anexa; senão mantém a URL existente
+        if (formData.imagem instanceof File) {
+            payload.append('imagem', formData.imagem);
+        } else if (typeof formData.imagem === 'string' && formData.imagem) {
+            // Informa a URL atual para o back-end não apagar a foto existente
+            dadosDaLoja.fotoUrl = formData.imagem;
+            // Recria o blob com fotoUrl incluído
+            payload.set(
+                'dados',
+                new Blob([JSON.stringify(dadosDaLoja)], { type: 'application/json' })
+            );
+        }
+
         try {
-            console.log("Enviando payload corrigido:", dadosDaLoja); 
-            const response = await atualizarPerfilLoja(idParaAtualizar, dadosDaLoja);
+            console.log("Enviando perfil da loja como multipart:", dadosDaLoja);
+            const resposta = await api.put(`/confeiteiro/loja/atualizar/${idParaAtualizar}`, payload);
 
-            if (response) {
-                const confeiteiroAtualizado = response.data || response;
-                localStorage.setItem('user', JSON.stringify(confeiteiroAtualizado));
+            // O interceptor de api.js já retorna response.data diretamente
+            const lojaAtualizada = resposta?.loja || resposta || {};
 
-                const lojaAtualizada = confeiteiroAtualizado.loja || {};
+            // Determina a URL final da imagem para atualizar o contexto
+            const imagemFinal = lojaAtualizada.fotoUrl
+                ? (String(lojaAtualizada.fotoUrl).startsWith('http')
+                    ? lojaAtualizada.fotoUrl
+                    : `${API_BASE_URL}/uploads/${lojaAtualizada.fotoUrl}`)
+                : (typeof formData.imagem === 'string' ? formData.imagem : '');
 
-                atualizarDadosLoja({
-                    nome: lojaAtualizada.nomeFantasia || formData.nome,
-                    descricao: lojaAtualizada.descricao || formData.descricao,
-                    cnpj: lojaAtualizada.cnpj || formData.cnpj,
-                    telefone: lojaAtualizada.telefone || formData.telefone,
-                    endereco: lojaAtualizada.endereco || `${formData.logradouro}, ${formData.numero}`,
-                    bairro: formData.bairro,
-                    cidade: formData.cidade,
-                    estado: formData.estado,
-                    cep: formData.cep,
-                    imagem: lojaAtualizada.fotoUrl || urlImagem || ''
-                });
-                atualizarHorarioFuncionamento(horarios);
-                
-                if(lojaAtualizada.id) setLojaIdReal(lojaAtualizada.id);
+            atualizarDadosLoja({
+                id: lojaAtualizada.id || lojaIdReal,
+                nome: lojaAtualizada.nomeFantasia || formData.nome,
+                descricao: lojaAtualizada.descricao || formData.descricao,
+                cnpj: lojaAtualizada.cnpj || formData.cnpj,
+                telefone: lojaAtualizada.telefone || formData.telefone,
+                endereco: lojaAtualizada.endereco || `${formData.logradouro}, ${formData.numero}`,
+                bairro: formData.bairro,
+                cidade: formData.cidade,
+                estado: formData.estado,
+                cep: formData.cep,
+                imagem: imagemFinal,
+            });
+            atualizarHorarioFuncionamento(horarios);
+
+            if (lojaAtualizada.id) setLojaIdReal(lojaAtualizada.id);
+
+            // Atualiza o formData para refletir a URL salva (não mais o File)
+            if (imagemFinal) {
+                setFormData(prev => ({ ...prev, imagem: imagemFinal }));
             }
-            
+
             window.dispatchEvent(new Event('localStorageUpdate'));
             localStorage.setItem('nomeLoja', formData.nome);
-            alert("Perfil da loja updated com sucesso!");
+            alert("Perfil da loja atualizado com sucesso!");
         } catch (erro) {
             console.error(erro);
-            alert("Erro ao atualizar perfil. Certifique-se de que este CNPJ já não está cadastrado.");
+            alert("Erro ao atualizar perfil. Verifique se o CNPJ já não está cadastrado.");
         }
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
 import PedidoCard from './PedidoCard';
@@ -20,9 +20,9 @@ const Pedidos = () => {
 
     useEffect(() => {
         carregarPedidos();
-    }, []);
+    }, [carregarPedidos]);
 
-    const carregarPedidos = async () => {
+    const carregarPedidos = useCallback(async () => {
         try {
             setLoading(true);
             const dados = await OrderService.getFilaTrabalho(confeiteiroId);
@@ -32,13 +32,14 @@ const Pedidos = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [confeiteiroId]);
 
     const handleAtualizarStatus = async (id, novoStatus) => {
         try {
             await OrderService.atualizarStatus(id, novoStatus);
             carregarPedidos();
         } catch (error) {
+            console.error('Erro ao atualizar status:', error);
             alert('Erro ao atualizar status.');
         }
     };
