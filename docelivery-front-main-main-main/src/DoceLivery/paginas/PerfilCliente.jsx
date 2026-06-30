@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faSave, faIdCard, faMapMarkerAlt, faHeart, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faSave, faIdCard, faMapMarkerAlt, faHeart, faBan, faBoxOpen } from '@fortawesome/free-solid-svg-icons';
 import Styles from './PerfilCliente.module.css';
 import ApiService from '../services/api';
 
@@ -155,7 +155,7 @@ const PerfilCliente = () => {
       };
 
       // Chamada PUT para o backend
-      await ApiService.put(`/atualizar/${idUsuario}`, dadosParaEnviar);
+      await ApiService.put(`/cliente/atualizar/${idUsuario}`, dadosParaEnviar);
 
       // Sincroniza LocalStorage
       localStorage.setItem('clientProfile', JSON.stringify(profileData));
@@ -209,6 +209,13 @@ const PerfilCliente = () => {
             <h2>{profileData.nome || 'Meu Perfil'}</h2>
             <p>{profileData.email}</p>
           </div>
+        </div>
+
+        <div className={Styles.navigationMenu}>
+          <button className={Styles.navButton} onClick={() => navigate('/docelivery/cliente/meus-pedidos')}>
+            <FontAwesomeIcon icon={faBoxOpen} />
+            <span>Meus Pedidos</span>
+          </button>
         </div>
 
         <div className={Styles.body}>

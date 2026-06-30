@@ -75,6 +75,40 @@
   font-size: 0.9rem;
 }
 
+/* NAVEGAÇÃO DO PERFIL */
+.navigationMenu {
+  padding: 10px 20px;
+  background-color: rgba(250, 250, 250, 0.7);
+  border-bottom: 1px solid rgba(138, 43, 226, 0.1);
+  display: flex;
+  gap: 10px;
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #8a2be2;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.navButton:hover {
+  background-color: rgba(138, 43, 226, 0.08);
+  border-color: rgba(138, 43, 226, 0.2);
+}
+
+.navButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
+}
+
 /* CORPO DO FORMULÁRIO */
 .body {
   padding: 30px;

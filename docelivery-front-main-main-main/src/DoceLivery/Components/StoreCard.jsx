@@ -1,12 +1,8 @@
-// src/DoceLivery/Components/StoreCard.jsx
-
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faStar, faStarHalfAlt, faTruck } from '@fortawesome/free-solid-svg-icons'; 
 
-// Importa o CSS Module específico do componente para isolamento de estilos
 import styles from './StoreCard.module.css';
-
 
 /**
  * Componente que exibe um card de loja/confeitaria.
@@ -64,11 +60,15 @@ const StoreCard = ({ store, onClick, isListStyle = false }) => {
             {/* 1. Logo da Loja */}
             <div className={styles.logo_container}>
                 <img 
-                    src={store.logoUrl} 
+                    /* CORREÇÃO SÊNIOR: Consome a URL limpa gerada pela HomePage */
+                    src={store.logoUrl || '/images/default_store.png'} 
                     alt={`Logo da ${store.name}`} 
                     className={styles.store_logo}
-                    // Fallback visual se a imagem não carregar
-                    onError={(e) => { e.target.src = '/images/default_store.png'; }}
+                    // Fallback visual se a imagem não carregar no servidor
+                    onError={(e) => { 
+                        e.target.onerror = null; // Evita loop infinito se a imagem default falhar
+                        e.target.src = '/images/default_store.png'; 
+                    }}
                 />
             </div>
 
@@ -100,9 +100,8 @@ const StoreCard = ({ store, onClick, isListStyle = false }) => {
                 </div>
             </div>
 
-            {/* 3. Ícone de Favorito (Opcional) */}
+            {/* 3. Ícone de Favorito */}
             <div className={styles.favorite_icon}>
-                {/* Aqui você pode adicionar lógica para favoritar */}
                 <FontAwesomeIcon icon={faHeart} />
             </div>
         </div>

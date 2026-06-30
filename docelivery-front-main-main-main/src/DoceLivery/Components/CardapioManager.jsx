@@ -4,22 +4,24 @@ import AuthService from '../services/authService';
 import ProdutoService from '../services/produtoService';
 import KitService from '../services/kitService';
 import Styles from './CardapioManager.module.css';
-import { IoAdd, IoCreate, IoTrash, IoCloudUpload, IoClose, IoFastFood, IoPricetag, IoCube, IoList, IoDocumentText, IoGrid, IoSearch, IoFilter, IoGift } from 'react-icons/io5';
+import { IoAdd, IoCreate, IoTrash, IoCloudUpload, IoGrid, IoList, IoSearch, IoFilter, IoGift } from 'react-icons/io5';
 import { IMAGE_MAP } from '../data/imageImports';
-import ImageUploader from './ImageUploader';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
 const buildImageSrc = (rawImage) => {
     if (!rawImage) return null;
     const src = String(rawImage).trim();
     if (!src) return null;
     if (src.startsWith('http') || src.startsWith('//')) return src;
-    if (src.startsWith('/uploads/') || src.startsWith('/imagens/') || src.startsWith('/')) {
-        return `${API_BASE_URL}${src}`;
+    
+    const cleanPath = src.startsWith('/') ? src.substring(1) : src;
+    
+    if (cleanPath.startsWith('uploads/') || cleanPath.startsWith('imagens/')) {
+        return `${API_BASE_URL}/${cleanPath}`;
     }
-    return `${IMAGE_URL}/${src}`;
+    
+    return `${API_BASE_URL}/uploads/${cleanPath}`;
 };
 
 const getProdutoImageSrc = (produto) => {
@@ -36,7 +38,6 @@ const CardapioManager = () => {
     const [arquivoImagem, setArquivoImagem] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
 
-    // Novos estados para o layout atualizado
     const [viewMode, setViewMode] = useState('grid');
     const [busca, setBusca] = useState('');
     const [filtroCategoria, setFiltroCategoria] = useState('todos');
@@ -116,7 +117,6 @@ const CardapioManager = () => {
         if (!confeiteiroId) return;
         try {
             const data = await ProdutoService.getProdutosDaLoja(confeiteiroId);
-            // Filtra kits da lista de produtos (categoriaId 12 = Kit Festa) para evitar duplicidade
             const apenasP = Array.isArray(data)
                 ? data.filter(p => {
                     const catId = typeof p.categoria === 'object' ? p.categoria?.id : Number(p.categoriaId || p.categoria);
@@ -140,8 +140,9 @@ const CardapioManager = () => {
         setModalType(type);
         setEditingItem(item);
         setBuscaProdutoKit('');
+        setArquivoImagem(null);
+
         if (item) {
-            // Protege quando item.categoria pode ser um objeto { id, nome }
             const categoriaNome = typeof item.categoria === 'object' ? item.categoria?.nome : item.categoria;
             const categoriaKey = normalizeCategoryKey(categoriaNome || '') || getCategoryKeyById(item.categoriaId);
             const selecionados = getKitSelectedProductIds(item);
@@ -165,7 +166,6 @@ const CardapioManager = () => {
                 imagem: '', imagemCustom: null, produtos: []
             });
             setPreviewUrl(null);
-            setArquivoImagem(null);
         }
         setShowModal(true);
     };
@@ -186,28 +186,13 @@ const CardapioManager = () => {
         }
     };
 
+    // ZERADO WARNINGS: Método limpo de variáveis mortas para não apontar erro na compilação do VSCode
     const toggleDisponibilidade = async (id) => {
-        const produto = produtosDisponiveis.find(p => p.id === id);
-        if (!produto) return;
         try {
-            // Extrai nome da categoria (pode ser string, objeto ou ID) e mapeia para ID
-            const categoriaNome = typeof produto.categoria === 'object' ? produto.categoria?.nome : produto.categoria;
-            const mappedCategoriaId = getCategoryInfo(categoriaNome)?.id || null;
-
-            const atualizado = {
-                nome: produto.nome,
-                preco: parseFloat(produto.preco) || 0,
-                estoque: parseInt(produto.estoque) || 0,
-                descricao: produto.descricao || '',
-                disponivel: !produto.disponivel,
-                categoriaId: mappedCategoriaId
-            };
-
-            await ProdutoService.atualizarProduto(id, atualizado, null);
+            await ProdutoService.desativarProduto(id);
             carregarProdutos();
-        } catch (error) {
-            console.error(error);
-            alert('Erro ao atualizar disponibilidade.');
+        } catch {
+            alert('Não foi possível alterar a disponibilidade do item.');
         }
     };
 
@@ -224,8 +209,7 @@ const CardapioManager = () => {
         if (!rawUser) return {};
         try {
             return JSON.parse(rawUser);
-        } catch (error) {
-            console.warn('Não foi possível parsear o usuário logado do localStorage:', error);
+        } catch {
             return {};
         }
     };
@@ -259,7 +243,6 @@ const CardapioManager = () => {
             }))
         };
 
-        // Usa nome diferente para não sobrescrever o estado formData
         const multipart = new FormData();
         if (arquivoImagem) multipart.append('imagem', arquivoImagem);
         multipart.append('kit', new Blob([JSON.stringify(dadosDoKit)], { type: 'application/json' }));
@@ -271,7 +254,7 @@ const CardapioManager = () => {
             carregarProdutos();
         } catch (error) {
             console.error('Erro ao salvar o kit:', error);
-            alert('Erro ao salvar o kit. Verifique o console.');
+            alert('Erro ao salvar o kit.');
         }
     };
 
@@ -288,7 +271,6 @@ const CardapioManager = () => {
         if (modalType === 'combo') return handleSaveKit();
 
         try {
-            // ✅ PASSO 1: Validações básicas
             if (!formData.nome || !formData.nome.trim()) {
                 alert("❌ Nome do produto é obrigatório.");
                 return;
@@ -299,76 +281,42 @@ const CardapioManager = () => {
                 return;
             }
 
-            // ✅ PASSO 2: Validação de categoria (CRÍTICO)
             if (!formData.categoria || formData.categoria === '') {
-                alert("❌ Categoria é obrigatória. Selecione uma categoria para o produto.");
+                alert("❌ Categoria é obrigatória.");
                 return;
             }
 
-            // ✅ PASSO 3: Mapear nome da categoria para ID numérico usando o categoryMap enriquecido
-            const categoriaInfo = getCategoryInfo(formData.categoria);
-            if (!categoriaInfo) {
-                alert(`❌ Categoria inválida: "${formData.categoria}". Verifique a configuração.`);
-                console.error('Erro de mapeamento - categoria:', {
-                    categoriaSelecionada: formData.categoria,
-                    categoryMapCompleto: categoryMap
-                });
+            const categoryInfo = getCategoryInfo(formData.categoria);
+            if (!categoryInfo) {
+                alert(`❌ Categoria inválida.`);
                 return;
             }
-            const mappedId = categoriaInfo.id;
+            const mappedId = categoryInfo.id;
 
-            // ✅ PASSO 4: Construir objeto exatamente como o backend espera
-            // O backend espera um DTO com essas propriedades exatas
             const produtoParaEnviar = {
                 nome: formData.nome.trim(),
                 preco: parseFloat(formData.preco),
                 estoque: parseInt(formData.estoque) || 0,
                 descricao: formData.descricao || '',
                 disponivel: formData.disponivel === undefined ? true : formData.disponivel,
-                categoriaId: mappedId  // 🔴 IMPORTANTE: Enviar como NÚMERO, não como string ou objeto
+                categoriaId: mappedId  
             };
 
-            // ✅ PASSO 5: Log detalhado para debug
-            console.group('📦 CardapioManager.handleSave() - Iniciando envio');
-            console.log('Modo:', editingItem ? 'EDIÇÃO' : 'CRIAÇÃO');
-            console.log('Produto para enviar:', produtoParaEnviar);
-            console.log('Imagem:', arquivoImagem ? `${arquivoImagem.name} (${arquivoImagem.size} bytes)` : 'nenhuma');
-            console.log('Confeiteiro ID:', confeiteiroId);
-            console.groupEnd();
-
-            // ✅ PASSO 6: Chamar o serviço com os dados validados
             if (editingItem) {
-                console.log(`🔄 Atualizando produto ID ${editingItem.id}...`);
-                await ProdutoService.atualizarProduto(
-                    editingItem.id,
-                    produtoParaEnviar,
-                    arquivoImagem
-                );
+                await ProdutoService.atualizarProduto(editingItem.id, produtoParaEnviar, arquivoImagem);
                 alert('✅ Produto atualizado com sucesso!');
             } else {
-                console.log(`➕ Criando novo produto para confeiteiro ${confeiteiroId}...`);
-                await ProdutoService.criarProduto(
-                    produtoParaEnviar,
-                    arquivoImagem,
-                    confeiteiroId
-                );
+                await ProdutoService.criarProduto(produtoParaEnviar, arquivoImagem, confeiteiroId);
                 alert('✅ Produto criado com sucesso!');
             }
             
-            // ✅ PASSO 7: Limpar UI e recarregar
             setShowModal(false);
             setArquivoImagem(null);
             setPreviewUrl(null);
             carregarProdutos();
 
-        } catch (error) {
-            console.error('❌ Erro ao salvar produto:', error);
-            console.log('Detalhes do erro:', {
-                mensagem: error.message,
-                stack: error.stack,
-                response: error.response?.data
-            });
-            alert(`❌ Erro ao salvar produto: ${error.message || 'Tente novamente'}`);
+        } catch {
+            alert(`❌ Erro ao salvar produto.`);
         }
     };
 
@@ -381,45 +329,18 @@ const CardapioManager = () => {
                 </div>
                 <div className={Styles.headerActions}>
                     <div className={Styles.viewToggle}>
-                        <button 
-                            className={`${Styles.toggleBtn} ${viewMode === 'grid' ? Styles.active : ''}`}
-                            onClick={() => setViewMode('grid')}
-                        >
-                            <IoGrid size={20} />
-                        </button>
-                        <button 
-                            className={`${Styles.toggleBtn} ${viewMode === 'list' ? Styles.active : ''}`}
-                            onClick={() => setViewMode('list')}
-                        >
-                            <IoList size={20} />
-                        </button>
+                        <button className={`${Styles.toggleBtn} ${viewMode === 'grid' ? Styles.active : ''}`} onClick={() => setViewMode('grid')}><IoGrid size={20} /></button>
+                        <button className={`${Styles.toggleBtn} ${viewMode === 'list' ? Styles.active : ''}`} onClick={() => setViewMode('list')}><IoList size={20} /></button>
                     </div>
-                    <button 
-                        className={Styles.addBtn}
-                        onClick={() => handleOpenModal('produto')}
-                    >
-                        <IoAdd size={20} />
-                        Produto
-                    </button>
-                    <button 
-                        className={Styles.addBtn}
-                        onClick={() => handleOpenModal('combo')}
-                    >
-                        <IoGift size={20} />
-                        Kit Festa
-                    </button>
+                    <button className={Styles.addBtn} onClick={() => handleOpenModal('produto')}><IoAdd size={20} />Produto</button>
+                    <button className={Styles.addBtn} onClick={() => handleOpenModal('combo')}><IoGift size={20} />Kit Festa</button>
                 </div>
             </div>
 
             <div className={Styles.filters}>
                 <div className={Styles.searchBox}>
                     <IoSearch size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar produtos..."
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                    />
+                    <input type="text" placeholder="Buscar produtos..." value={busca} onChange={(e) => setBusca(e.target.value)} />
                 </div>
                 <div className={Styles.categoryFilter}>
                     <IoFilter size={20} />
@@ -432,7 +353,7 @@ const CardapioManager = () => {
                 </div>
             </div>
 
-            {/* ══ SEÇÃO: PRODUTOS ══ */}
+            {/* SEÇÃO: PRODUTOS */}
             <div className={Styles.secaoHeader}>
                 <span className={Styles.secaoIcone}>🧁</span>
                 <h3>Produtos</h3>
@@ -442,10 +363,10 @@ const CardapioManager = () => {
             <div className={`${Styles.produtosGrid} ${viewMode === 'list' ? Styles.listView : ''}`}>
                 {produtosFiltrados.length > 0 ? (
                     produtosFiltrados.map(produto => (
-                        <div key={produto.id} className={`${Styles.produtoCard} ${!produto.disponivel ? Styles.indisponivel : ''}`}>
+                        <div key={produto.id} className={`${Styles.produtoCard} ${produto.disponivel === false || produto.codStatus === false ? Styles.indisponivel : ''}`}>
                             <div className={Styles.produtoImagem}>
                                 <img src={produto.imagemCustom || getProdutoImageSrc(produto)} alt={produto.nome} />
-                                {!produto.disponivel && <div className={Styles.indisponivelOverlay}>Indisponível</div>}
+                                {(produto.disponivel === false || produto.codStatus === false) && <div className={Styles.indisponivelOverlay}>Indisponível</div>}
                             </div>
                             <div className={Styles.produtoInfo}>
                                 <h3>{produto.nome}</h3>
@@ -460,24 +381,11 @@ const CardapioManager = () => {
                                 </div>
                             </div>
                             <div className={Styles.produtoActions}>
-                                <button 
-                                    className={Styles.toggleBtn}
-                                    onClick={() => toggleDisponibilidade(produto.id)}
-                                >
-                                    {produto.disponivel ? 'Desativar' : 'Ativar'}
+                                <button className={Styles.toggleBtn} onClick={() => toggleDisponibilidade(produto.id)}>
+                                    {produto.disponivel === false || produto.codStatus === false ? 'Ativar' : 'Desativar'}
                                 </button>
-                                <button 
-                                    className={Styles.editBtn}
-                                    onClick={() => handleOpenModal('produto', produto)}
-                                >
-                                    <IoCreate size={16} />
-                                </button>
-                                <button 
-                                    className={Styles.deleteBtn}
-                                    onClick={() => handleDelete(produto.id, 'produto')}
-                                >
-                                    <IoTrash size={16} />
-                                </button>
+                                <button className={Styles.editBtn} onClick={() => handleOpenModal('produto', produto)}><IoCreate size={16} /></button>
+                                <button className={Styles.deleteBtn} onClick={() => handleDelete(produto.id, 'produto')}><IoTrash size={16} /></button>
                             </div>
                         </div>
                     ))
@@ -486,7 +394,7 @@ const CardapioManager = () => {
                 )}
             </div>
 
-            {/* ══ SEÇÃO: KITS ══ */}
+            {/* SEÇÃO: KITS */}
             <div className={Styles.secaoHeader} style={{ marginTop: 16 }}>
                 <span className={Styles.secaoIcone}>🎁</span>
                 <h3>Kits & Combos</h3>
@@ -497,8 +405,18 @@ const CardapioManager = () => {
                 <section className={Styles.kitsSection}>
                     <div className={Styles.combosGrid}>
                         {combos.map(combo => (
-                            <div key={combo.id} className={Styles.comboCard}>
-                                <div className={Styles.kitIconWrapper}><IoGift size={24} /></div>
+                            <div key={combo.id} className={`${Styles.comboCard} ${combo.disponivel === false || combo.codStatus === false ? Styles.indisponivel : ''}`}>
+                                <div className={Styles.produtoImagem}>
+                                    <img 
+                                        src={getProdutoImageSrc(combo)} 
+                                        alt={combo.nome} 
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = '/images/default_placeholder.png';
+                                        }}
+                                    />
+                                    {(combo.disponivel === false || combo.codStatus === false) && <div className={Styles.indisponivelOverlay}>Indisponível</div>}
+                                </div>
                                 <div className={Styles.comboInfo}>
                                     <h4>{combo.nome}</h4>
                                     <p>{combo.descricao}</p>
@@ -510,15 +428,15 @@ const CardapioManager = () => {
                                                 .join(', ')}
                                         </p>
                                     )}
-                                    <span className={Styles.comboPreco}>R$ {Number(combo.precoTotal || 0).toFixed(2)}</span>
+                                    <span className={Styles.comboPreco}>R$ {Number(combo.preco || 0).toFixed(2)}</span>
                                 </div>
                                 <div className={Styles.comboActions}>
-                                    <button onClick={() => handleOpenModal('combo', combo)}>
-                                        <IoCreate size={16} />
+                                    {/* 🟢 ADICIONADO: Botão de Ativar/Desativar completo para a aba de Kits & Combos */}
+                                    <button className={Styles.toggleBtn} onClick={() => toggleDisponibilidade(combo.id)}>
+                                        {combo.disponivel === false || combo.codStatus === false ? 'Ativar' : 'Desativar'}
                                     </button>
-                                    <button onClick={() => handleDelete(combo.id, 'combo')}>
-                                        <IoTrash size={16} />
-                                    </button>
+                                    <button onClick={() => handleOpenModal('combo', combo)}><IoCreate size={16} /></button>
+                                    <button onClick={() => handleDelete(combo.id, 'combo')}><IoTrash size={16} /></button>
                                 </div>
                             </div>
                         ))}
@@ -531,27 +449,21 @@ const CardapioManager = () => {
                 </div>
             )}
 
+            {/* MODAL */}
             {showModal && (
                 <div className={Styles.modalOverlay}>
                     <div className={Styles.modal}>
                         <div className={Styles.modalHeader}>
                             <div>
-                                <h3>
-                                    {editingItem ? '✏️ Editar cadastro' : '➕ Novo cadastro'}
-                                </h3>
-                                <p className={Styles.modalSubtitle}>
-                                    Use imagens e informações claras para destacar seus produtos no delivery.
-                                </p>
+                                <h3>{editingItem ? '✏️ Editar cadastro' : '➕ Novo cadastro'}</h3>
+                                <p className={Styles.modalSubtitle}>Use imagens e informações claras para destacar seus produtos no delivery.</p>
                             </div>
                             <button onClick={() => setShowModal(false)}>✕</button>
                         </div>
 
                         <div className={Styles.modalContent}>
-                            {/* ===== SEÇÃO DE CADASTRO ===== */}
                             <div className={Styles.formSection}>
-                                <div className={Styles.formSectionTitle}>
-                                    📋 Cadastro do produto
-                                </div>
+                                <div className={Styles.formSectionTitle}>📋 Cadastro do produto</div>
                                 <div className={Styles.formGroup}>
                                     <label>Nome *</label>
                                     <input
@@ -578,75 +490,39 @@ const CardapioManager = () => {
                                     {modalType === 'produto' ? (
                                         <div className={Styles.formGroup}>
                                             <label>Categoria *</label>
-                                            <select
-                                                value={formData.categoria}
-                                                onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                                                style={{borderColor: formData.categoria ? '#D1D5DB' : '#EF4444'}}
-                                            >
+                                            <select value={formData.categoria} onChange={(e) => setFormData({...formData, categoria: e.target.value})}>
                                                 <option value="">Selecione...</option>
                                                 {categorias.filter(c => c !== 'todos').map(cat => (
-                                                    <option key={cat} value={cat}>
-                                                        {`${categoryMap[cat].icone} ${categoryMap[cat].nome}`}
-                                                    </option>
+                                                    <option key={cat} value={cat}>{`${categoryMap[cat].icone} ${categoryMap[cat].nome}`}</option>
                                                 ))}
                                             </select>
                                         </div>
                                     ) : (
                                         <div className={Styles.formGroup}>
                                             <label>Estoque</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={formData.estoque}
-                                                onChange={(e) => setFormData({...formData, estoque: e.target.value})}
-                                            />
+                                            <input type="number" min="0" value={formData.estoque} onChange={(e) => setFormData({...formData, estoque: e.target.value})} />
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* ===== SEÇÃO DE IMAGEM ===== */}
                             <div className={Styles.formSection}>
-                                <div className={Styles.formSectionTitle}>
-                                    🖼️ Adiciomar Imagem
-                                </div>
-                                <div
-                                    onClick={() => document.getElementById('file-upload-modal').click()} 
-                                    className={Styles.imagePreviewContainer}
-                                >
+                                <div className={Styles.formSectionTitle}>🖼️ Adicionar Imagem</div>
+                                <div onClick={() => document.getElementById('file-upload-modal').click()} className={Styles.imagePreviewContainer}>
                                     <div className={Styles.imagePreviewBox}>
-                                        {previewUrl ? (
-                                            <img src={previewUrl} alt="Preview" />
-                                        ) : (
-                                            <IoCloudUpload size={40} color="#7C3AED" />
-                                        )}
+                                        {previewUrl ? <img src={previewUrl} alt="Preview" /> : <IoCloudUpload size={40} color="#7C3AED" />}
                                     </div>
                                     <div>
                                         <div className={Styles.uploadLabel}>Arraste ou clique para adicionar imagem</div>
                                         <div className={Styles.uploadHint}>PNG, JPG, WEBP (máx. 5MB)</div>
                                     </div>
                                 </div>
-                                <input 
-                                    id="file-upload-modal" 
-                                    type="file" 
-                                    onChange={handleFileChange} 
-                                    accept="image/*" 
-                                    style={{ display: 'none' }} 
-                                />
-                                <div className={Styles.imageUploadActions}>
-                                    
-                                    <div className={Styles.uploadGuidance}>
-                                        ou escolha uma imagem padrão para usar no cardápio de delivery
-                                    </div>
-                                </div>
+                                <input id="file-upload-modal" type="file" onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
 
                                 {modalType === 'produto' && (
                                     <div className={Styles.formGroup} style={{marginTop: '16px'}}>
                                         <label>Ou selecione uma imagem padrão</label>
-                                        <select
-                                            value={formData.imagem}
-                                            onChange={(e) => setFormData({...formData, imagem: e.target.value, imagemCustom: null})}
-                                        >
+                                        <select value={formData.imagem} onChange={(e) => setFormData({...formData, imagem: e.target.value, imagemCustom: null})}>
                                             <option value="">Selecione uma imagem...</option>
                                             {imagensDisponiveis.map(img => (
                                                 <option key={img} value={img}>{img.replace(/_/g, ' ')}</option>
@@ -656,47 +532,29 @@ const CardapioManager = () => {
                                 )}
                             </div>
 
-                            {/* ===== SEÇÃO DE DESCRIÇÃO ===== */}
                             <div className={Styles.formSection}>
-                                <div className={Styles.formSectionTitle}>
-                                    📝 Descrição
-                                </div>
+                                <div className={Styles.formSectionTitle}>📝 Descrição</div>
                                 <div className={Styles.formGroup}>
                                     <label>Descrição para cardápio</label>
                                     <textarea
                                         value={formData.descricao}
                                         onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                                        placeholder={modalType === 'produto' 
-                                            ? "Descreva o produto, ingredientes principais, tamanho..." 
-                                            : "Detalhes sobre o que vem no kit, quantidade, serviço..."}
+                                        placeholder={modalType === 'produto' ? "Descreva o produto..." : "Detalhes sobre o que vem no kit..."}
                                     />
                                 </div>
                             </div>
 
-                            {/* ===== SEÇÃO DE DISPONIBILIDADE (Produtos) ===== */}
                             {modalType === 'produto' && (
                                 <div className={Styles.formSection}>
-                                    <div className={Styles.formSectionTitle}>
-                                        ⚙️ Configuração
-                                    </div>
+                                    <div className={Styles.formSectionTitle}>⚙️ Configuração</div>
                                     <div className={Styles.twoColumnGrid}>
                                         <div className={Styles.formGroup}>
                                             <label>Estoque</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={formData.estoque}
-                                                onChange={(e) => setFormData({...formData, estoque: e.target.value})}
-                                            />
+                                            <input type="number" min="0" value={formData.estoque} onChange={(e) => setFormData({...formData, estoque: e.target.value})} />
                                         </div>
                                         <div className={Styles.formGroup}>
                                             <div className={Styles.checkboxGroup}>
-                                                <input 
-                                                    type="checkbox" 
-                                                    id="disponivel-check"
-                                                    checked={formData.disponivel}
-                                                    onChange={(e) => setFormData({...formData, disponivel: e.target.checked})}
-                                                />
+                                                <input type="checkbox" id="disponivel-check" checked={formData.disponivel} onChange={(e) => setFormData({...formData, disponivel: e.target.checked})} />
                                                 <label htmlFor="disponivel-check">Disponível para venda</label>
                                             </div>
                                         </div>
@@ -704,28 +562,17 @@ const CardapioManager = () => {
                                 </div>
                             )}
 
-                            {/* ===== SEÇÃO DE SELEÇÃO DE PRODUTOS (Kits) ===== */}
                             {modalType === 'combo' && (
                                 <div className={Styles.formSection}>
-                                    <div className={Styles.formSectionTitle}>
-                                        🎁 Selecione os Produtos
-                                    </div>
+                                    <div className={Styles.formSectionTitle}>🎁 Selecione os Produtos</div>
                                     <div className={Styles.formGroup}>
                                         <div className={Styles.kitFestaSearch}>
-                                            <IoSearch size={18} />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Filtrar meus produtos..." 
-                                                value={buscaProdutoKit}
-                                                onChange={(e) => setBuscaProdutoKit(e.target.value)}
-                                            />
+                                            <input type="text" placeholder="Filtrar meus produtos..." value={buscaProdutoKit} onChange={(e) => setBuscaProdutoKit(e.target.value)} />
                                         </div>
                                     </div>
 
                                     <div className={Styles.kitFestaBuilder}>
-                                        {produtosDisponiveis
-                                            .filter(p => p.nome.toLowerCase().includes(buscaProdutoKit.toLowerCase()))
-                                            .map(produto => (
+                                        {produtosDisponiveis.filter(p => p.nome.toLowerCase().includes(buscaProdutoKit.toLowerCase())).map(produto => (
                                             <div 
                                                 key={produto.id} 
                                                 className={`${Styles.kitFestaItem} ${formData.produtos.includes(produto.id) ? Styles.selected : ''}`}
@@ -745,35 +592,22 @@ const CardapioManager = () => {
                                                     <span className={Styles.itemPrice}>R$ {Number(produto.preco).toFixed(2)}</span>
                                                 </div>
                                                 <div className={Styles.kitFestaCheckbox}>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={formData.produtos.includes(produto.id)} 
-                                                        readOnly 
-                                                    />
+                                                    <input type="checkbox" checked={formData.produtos.includes(produto.id)} readOnly />
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
 
                                     <div className={Styles.totalInfo}>
-                                        💰 Total dos itens: R$ {
-                                            produtosDisponiveis
-                                                .filter(p => formData.produtos.includes(p.id))
-                                                .reduce((acc, curr) => acc + Number(curr.preco), 0)
-                                                .toFixed(2)
-                                        }
+                                        💰 Total dos itens: R$ {produtosDisponiveis.filter(p => formData.produtos.includes(p.id)).reduce((acc, curr) => acc + Number(curr.preco), 0).toFixed(2)}
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         <div className={Styles.modalActions}>
-                            <button className={Styles.cancelBtn} onClick={() => setShowModal(false)}>
-                                Cancelar
-                            </button>
-                            <button className={Styles.saveBtn} onClick={handleSave}>
-                                Salvar Produto
-                            </button>
+                            <button className={Styles.cancelBtn} onClick={() => setShowModal(false)}>Cancelar</button>
+                            <button className={Styles.saveBtn} onClick={handleSave}>Salvar Produto</button>
                         </div>
                     </div>
                 </div>

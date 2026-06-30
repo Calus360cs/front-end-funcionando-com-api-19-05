@@ -4,13 +4,15 @@ import Styles from './ConfeiteiroDashboard.module.css';
 import { IoHome, IoReceipt, IoRestaurant, IoStatsChart, IoCalendar, IoSettings, IoLogOut, IoNotifications, IoMenu } from 'react-icons/io5';
 import { useLoja } from '../context/LojaContext';
 import AuthService from '../services/authService';
-import PedidosPage from "../Components/PedidosPage";
+import Pedidos from "../Components/Pedidos";
 import CardapioManager from "../Components/CardapioManager";
 import DashboardHome from "../Components/DashboardHome";
 import FinanceiroModerno from '../Components/FinanceiroModerno';
 import AgendamentosModerno from '../Components/AgendamentosModerno';
 import PerfilLoja from '../Components/PerfilLoja';
 import AppLogo from '../assests/img/doce_Livre_3.jpg';
+import { getImageUrl } from '../utils/urlUtils';
+
 
 const ConfeiteiroDashboard = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
@@ -190,7 +192,7 @@ const ConfeiteiroDashboard = () => {
 
   const renderConteudo = () => {
     switch (secaoAtiva) {
-      case 'pedidos': return <PedidosPage />;
+      case 'pedidos': return <Pedidos />;
       case 'cardapio': return <CardapioManager />;
       case 'home': return <DashboardHome userData={perfilUnificado} />;
       case 'finance': return <FinanceiroModerno />;
@@ -280,13 +282,7 @@ const ConfeiteiroDashboard = () => {
       <aside className={`${Styles.sidebar} ${sidebarOpen ? Styles.open : Styles.closed}`}>
         <div className={Styles.sidebarHeader}>
           <img 
-            src={
-              perfilUnificado.fotoLoja && perfilUnificado.fotoLoja !== AppLogo
-                ? (String(perfilUnificado.fotoLoja).startsWith('http') 
-                    ? perfilUnificado.fotoLoja 
-                    : `http://localhost:8080/uploads/${perfilUnificado.fotoLoja}`)
-                : AppLogo
-            } 
+            src={getImageUrl(perfilUnificado.fotoLoja) || AppLogo} 
             alt="Logo da loja" 
             className={Styles.sidebarLogo}
             onError={(e) => { e.target.src = AppLogo; }}

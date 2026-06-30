@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Styles from '../Components/DashboardHome.module.css';
 import { FaBoxOpen, FaChartLine, FaCalendarAlt, FaShoppingCart, FaExclamationTriangle, FaClock, FaEdit } from 'react-icons/fa';
-import { useStore } from '../context/StoreContext';
+import { useLoja } from '../context/LojaContext';
 import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
 import ConfeiteiroService from '../services/confeiteiroService'; 
 import SalesChart from './SalesChart';
 import VendasTempoReal from '../Components/VendasTempoReal';
 
+
 const DashboardHome = ({ editMode, userData }) => {
-    const { storeData, updateStoreData } = useStore();
+    const { dadosLoja, atualizarDadosLoja } = useLoja();
     const [editingField, setEditingField] = useState(null);
     
     const [pedidosBanco, setPedidosBanco] = useState([]);
@@ -76,7 +77,7 @@ const DashboardHome = ({ editMode, userData }) => {
                 } else {
                     const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
                     const savedDados = JSON.parse(localStorage.getItem('dadosConfeiteiro') || '{}');
-                    const lojaObjeto = storeData || savedDados.loja || savedUser.loja || {};
+                    const lojaObjeto = dadosLoja || savedDados.loja || savedUser.loja || {};
 
                     setDisplayStoreData({
                         nomeConfeiteiro: userData?.nome || savedUser.nome || 'Confeiteiro',
@@ -97,7 +98,7 @@ const DashboardHome = ({ editMode, userData }) => {
         };
 
         buscarDadosDashboard();
-    }, [confeiteiroId]); 
+    }, [confeiteiroId, dadosLoja, userData]); 
 
     const kpisCalculados = useMemo(() => {
         const novosEPendentes = pedidosBanco.filter(p => p.status === 'NOVO' || p.status === 'PENDENTE');
@@ -134,8 +135,8 @@ const DashboardHome = ({ editMode, userData }) => {
         const novosDadosVisuais = { ...displayStoreData, [field]: value };
         setDisplayStoreData(novosDadosVisuais);
         
-        if (updateStoreData) {
-            updateStoreData({ [field]: value });
+        if (atualizarDadosLoja) {
+            atualizarDadosLoja({ [field]: value });
         }
 
         try {
@@ -189,37 +190,27 @@ const DashboardHome = ({ editMode, userData }) => {
     return (
         <div className={Styles.dashboardHome}>
             <div className={Styles.welcomeSection}>
+                {/* O nome do confeiteiro ainda vem do estado local, pois não está no LojaContext */}
                 <h1>Bem-vindo de volta, {displayStoreData.nomeConfeiteiro}!</h1>
-                {!displayStoreData.name ? (
+                
+                {/* O resto dos dados vem do LojaContext, que é global */}
+                {!dadosLoja.nome ? (
                     <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', padding: '12px 16px', marginBottom: '12px', color: '#856404' }}>
                         ⚠️ Sua loja ainda não foi configurada. Vá em <strong>Perfil da Loja</strong> para preencher o nome, CNPJ e foto.
                     </div>
                 ) : (
-                    <p>Gerencie seus kits... da loja <strong>{displayStoreData.name}</strong></p>
+                    <p>Gerencie seus kits... da loja <strong>{dadosLoja.nome}</strong></p>
                 )}
                 <div className={Styles.storeInfo}>
-                    {displayStoreData.fotoUrl && (
-                        <img 
-                            src={
-                                String(displayStoreData.fotoUrl).startsWith('http')
-                                    ? displayStoreData.fotoUrl
-                                    : `http://localhost:8080/uploads/${displayStoreData.fotoUrl}`
-                            }
-                            alt="Foto da loja"
-                            style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', marginBottom: '10px' }}
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                    )}
+
                     <h3>
-                        <EditableField
-                            field="name"
-                            value={displayStoreData.name}
-                            className={Styles.storeName}
-                        />
+                        <span className={Styles.storeName}>{dadosLoja.nome}</span>
                     </h3>
+                    {/* Mantemos o e-mail do estado local, pois é específico do usuário/confeiteiro */}
                     {displayStoreData.email && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📧 {displayStoreData.email}</p>}
-                    {displayStoreData.phone && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📞 {displayStoreData.phone}</p>}
-                    {displayStoreData.address && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {displayStoreData.address}</p>}
+                    {/* Telefone e endereço agora vêm do contexto global da loja */}
+                    {dadosLoja.telefone && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📞 {dadosLoja.telefone}</p>}
+                    {dadosLoja.endereco && <p style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666' }}>📍 {dadosLoja.endereco}</p>}
                 </div>
             </div>
             

@@ -6,17 +6,20 @@ import { useCartStore } from '../context/CartContext.jsx';
 import { IoCartOutline, IoCalendarOutline, IoCloseOutline, IoInformationCircleOutline, IoStorefront, IoGift } from 'react-icons/io5';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const IMAGE_URL = `${API_BASE_URL}/uploads`;
 
 const buildImageSrc = (rawImage) => {
     if (!rawImage) return null;
     const src = String(rawImage).trim();
     if (!src) return null;
     if (src.startsWith('http') || src.startsWith('//')) return src;
-    if (src.startsWith('/uploads/') || src.startsWith('/imagens/') || src.startsWith('/') || src.startsWith('uploads/') || src.startsWith('imagens/')) {
-        return src.startsWith('/') ? `${API_BASE_URL}${src}` : `${API_BASE_URL}/${src}`;
+    
+    const cleanPath = src.startsWith('/') ? src.substring(1) : src;
+    
+    if (cleanPath.startsWith('uploads/') || cleanPath.startsWith('imagens/')) {
+        return `${API_BASE_URL}/${cleanPath}`;
     }
-    return `${IMAGE_URL}/${src}`;
+    
+    return `${API_BASE_URL}/uploads/${cleanPath}`;
 };
 
 const getStoreImageSrc = (store) => {
@@ -50,7 +53,6 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
             try {
                 setLoading(true);
 
-                // Busca produtos simples, excluindo kits (categoriaId=12) para evitar duplicidade
                 const dataProdutos = await ProductService.getProdutosDaLoja(idParaBuscar).catch(() => []);
                 const produtosSemKits = Array.isArray(dataProdutos)
                     ? dataProdutos.filter(p => {
@@ -66,7 +68,6 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
 
                 const produtosMap = new Map(produtosUnicos.map(produto => [Number(produto.id), produto]));
 
-                // Busca kits separadamente pela rota /produtos/kit/confeiteiro/{id}
                 const dataKits = await ApiService.get(`/produtos/kit/confeiteiro/${idParaBuscar}`).catch(() => []);
                 const kitsComProdutos = Array.isArray(dataKits)
                     ? dataKits.map(kit => {
@@ -110,10 +111,8 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
         fetchMenu();
     }, [loja]);
 
-    // Mostra todos os produtos (disponivel true, null ou undefined)
     const produtosDisponiveis = produtos.filter(p => p.disponivel !== false);
 
-    // Monta lista de categorias únicas a partir dos produtos
     const categorias = ['Todos', ...new Set(
         produtosDisponiveis
             .map(p => {
@@ -177,7 +176,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 </div>
             </div>
 
-            {/* BOTÕES DE AÇÃO PRINCIPAL */}
+            {/* BOTÕES DE AÇÃO */}
             <div className={Styles.actionBar}>
                 <button className={Styles.actionBtnPrimary} onClick={toggleCart}>
                     <IoCartOutline size={20} />
@@ -196,7 +195,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 </button>
             </div>
 
-            {/* FILTRO POR CATEGORIA */}
+            {/* FILTRO CATEGORIA */}
             {categorias.length > 1 && (
                 <div className={Styles.categoriaBar}>
                     {categorias.map(cat => (
@@ -246,11 +245,10 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                                         {produto.descricao && (
                                             <p className={Styles.produtoDesc}>{produto.descricao}</p>
                                         )}
+                                        {/* CORREÇÃO DO ERRO DA LINHA 254: Trocada a variável "p" por "produto" */}
                                         {produto.categoria && (
                                             <span className={Styles.categoriaPill}>
-                                                {typeof produto.categoria === 'object'
-                                                    ? produto.categoria?.nome
-                                                    : produto.categoria}
+                                                {typeof produto.categoria === 'object' ? produto.categoria?.nome : produto.categoria}
                                             </span>
                                         )}
                                     </div>
@@ -303,10 +301,26 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                     <div className={Styles.kitsGrid}>
                         {kits.map(kit => (
                             <div key={kit.id} className={Styles.kitCard}>
-                                <div className={Styles.kitIconBox}>
-                                    <IoGift size={28} />
+                                
+                                <div className={Styles.imageWrapper} style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+                                    {getImageSrc(kit) ? (
+                                        <img
+                                            src={getImageSrc(kit)}
+                                            alt={kit.nome}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={(e) => { 
+                                                e.target.onerror = null;
+                                                e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);color:white;"><IoGift size={24}/></div>';
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', color: 'white' }}>
+                                            <IoGift size={24} />
+                                        </div>
+                                    )}
                                 </div>
-                                <div className={Styles.kitInfo}>
+
+                                <div className={Styles.kitInfo} style={{ marginLeft: '16px', flexGrow: 1 }}>
                                     <h4 className={Styles.kitNome}>{kit.nome}</h4>
                                     {kit.descricao && <p className={Styles.kitDesc}>{kit.descricao}</p>}
                                     {kit.itens && kit.itens.length > 0 && (
@@ -323,7 +337,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                                     )}
                                     <div className={Styles.kitFooter}>
                                         <span className={Styles.kitPreco}>
-                                            R$ {Number(kit.precoTotal || kit.preco || 0).toFixed(2)}
+                                            R$ {Number(kit.preco || 0).toFixed(2)}
                                         </span>
                                         <button
                                             className={Styles.btnEncomendarKit}
@@ -345,7 +359,7 @@ const CardapioPublico = ({ loja, onOpenEncomendaModal }) => {
                 )}
             </div>
 
-            {/* MODAL DE DETALHES DO PRODUTO */}
+            {/* MODAL DETALHES */}
             {produtoDetalhe && (
                 <div className={Styles.modalOverlay} onClick={() => setProdutoDetalhe(null)}>
                     <div className={Styles.modal} onClick={e => e.stopPropagation()}>

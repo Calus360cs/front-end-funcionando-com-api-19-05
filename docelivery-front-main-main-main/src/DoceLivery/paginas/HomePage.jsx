@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
     IoCartOutline, IoHeartOutline, IoHeart, IoChevronBackOutline, 
     IoChevronForwardOutline, IoPersonOutline, IoLogOutOutline, 
-    IoSearchOutline, IoLocationOutline, IoStar, IoStarOutline, IoStarHalf 
+    IoSearchOutline, IoLocationOutline, IoStar, IoStarOutline, IoStarHalf, IoTimeOutline
 } from 'react-icons/io5';
 
 import CartComponent from "../Components/CartComponent.jsx";
@@ -25,6 +25,10 @@ import { IMAGE_MAP } from "../data/imageImports.jsx";
 
 const HomePage = () => {
     const navigate = useNavigate();
+
+    // Verifica se existe um pedido ativo guardado localmente
+    const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+    const temPedidoAtivo = currentOrder.id || currentOrder.pedidoId;
 
     // Hooks Globais (Carrinho e Favoritos)
     const { addItemToCart, totalItems, isCartOpen, toggleCart, isClearingCart } = useCartStore();
@@ -62,39 +66,87 @@ const HomePage = () => {
         const fetchAPIData = async () => {
             try {
                 setLoading(true);
+                const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-                // Busca as Lojas cadastradas no banco via API
+                // Busca as Lojas cadastradas no banco via API (Retornando ConfeiteiroDTO)
                 const storesData = await StoreService.getStores().catch(() => null);
-                // Busca os Produtos (Ofertas) cadastrados no banco via API
+                console.log('Raw stores data from API:', storesData);
+                
+                // Busca os Produtos (Ofertas/Kits) cadastrados no banco via API
                 const productsData = await ProductService.getProdutos().catch(() => null);
+                console.log('Raw products data from API:', productsData);
 
-                // Normaliza os dados das Lojas vindos do Java SQL Server
-                const storesRaw = storesData && storesData.length ? storesData.map(s => ({
-                    id: s.id,
-                    name: s.nomeLoja || s.nomeConfeitaria || s.nome,
-                    categoria: s.categoria || 'Doces',
-                    promocao: s.promocao,
-                    telefone: s.telefone || '',
-                    endereco: s.endereco || '',
-                    descricao: s.descricao || '',
-                    rating: s.avaliacao || 4.5,
-                    deliveryTime: s.tempoEntrega || '30-45 min',
-                    deliveryFee: s.taxaEntrega ? `R$ ${s.taxaEntrega.toFixed(2)}` : 'R$ 5,00',
-                    logoUrl: s.imagemUrl ? `http://localhost:8080/imagens/${s.imagemUrl}` : IMAGE_MAP['default'],
-                    featured: s.destaque || false,
-                    lat: s.lat || -23.55052, // Fallbacks caso precise de Geolocalização teste
-                    lng: s.lng || -46.63330
-                })) : [];
+                // Normaliza os dados das Lojas vindos do Java DTO
+                const storesRaw = storesData && storesData.length ? storesData.map(s => {
+                    const imagePath = s.loja?.fotoUrl || s.imagemUrl || s.fotoUrl || s.imagem;
+                    let fullImagePath;
 
-                // Normaliza os dados de Produtos para o componente OfferItem
-                const offersRaw = productsData && productsData.length ? productsData.map(p => ({
-                    id: p.id,
-                    name: p.nome,
-                    store: p.loja?.nomeLoja || p.nomeLoja || "Confeitaria Doce",
-                    price: p.preco || 0.0,
-                    categoryId: p.categoria?.id || null,
-                    imageUrl: p.imagemUrl ? `http://localhost:8080/imagens/${p.imagemUrl}` : IMAGE_MAP['default']
-                })) : [];
+                    if (imagePath) {
+                        if (imagePath.startsWith('http')) {
+                            fullImagePath = imagePath;
+                        } else {
+                            const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+                            fullImagePath = `${API_BASE_URL}/${cleanPath}`;
+                        }
+                    } else {
+                        fullImagePath = IMAGE_MAP['default'];
+                    }
+
+                    const storeName = s.loja?.nomeFantasia || s.nomeLoja || s.nomeConfeitaria || s.nome;
+
+                    console.log(`[IMG-TEST] Loja: ${storeName} | URL Final Gerada: ${fullImagePath}`);
+
+                    return {
+                        id: s.id,
+                        name: storeName,
+                        categoria: s.categoria || 'Doces',
+                        promocao: s.promocao,
+                        telefone: s.telefone || s.loja?.telefone || '',
+                        endereco: s.endereco || s.loja?.endereco || '',
+                        descricao: s.loja?.descricao || s.descricao || '',
+                        rating: s.avaliacao || 4.5,
+                        deliveryTime: s.tempoEntrega || '30-45 min',
+                        deliveryFee: s.taxaEntrega ? `R$ ${s.taxaEntrega.toFixed(2)}` : 'R$ 5,00',
+                        logoUrl: fullImagePath,
+                        featured: s.destaque || false,
+                        lat: s.lat || -23.55052, 
+                        lng: s.lng || -46.63330
+                    };
+                }) : [];
+
+                // CORREÇÃO DEFINITIVA DA IMAGEM DAS OFERTAS
+                const offersRaw = productsData && productsData.length ? productsData.map(p => {
+                    const imagePath = p.imagemUrl || p.fotoUrl || p.imagem;
+                    let fullProductPath;
+
+                    if (imagePath) {
+                        if (imagePath.startsWith('http')) {
+                            fullProductPath = imagePath;
+                        } else {
+                            let cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+                            
+                            // CORREÇÃO: Aponta direto para a pasta uploads/ onde o Spring Boot salva os arquivos locais
+                            if (!cleanPath.startsWith('uploads') && !cleanPath.startsWith('imagens')) {
+                                cleanPath = `uploads/${cleanPath}`;
+                            }
+                            
+                            fullProductPath = `${API_BASE_URL}/${cleanPath}`;
+                        }
+                    } else {
+                        fullProductPath = IMAGE_MAP['default'];
+                    }
+
+                    console.log(`[PROD-TEST] Item: ${p.nome} | URL Final Gerada: ${fullProductPath}`);
+
+                    return {
+                        id: p.id,
+                        name: p.nome,
+                        store: p.loja?.nomeLoja || p.nomeLoja || "Confeitaria Doce",
+                        price: p.preco || 0.0,
+                        categoryId: p.categoria?.id || null,
+                        imageUrl: fullProductPath
+                    };
+                }) : [];
 
                 setStores(storesRaw);
                 setOffers(offersRaw);
@@ -183,20 +235,40 @@ const HomePage = () => {
         navigate(`/docelivery/loja/${store.id}`);
     };
 
+    // CORREÇÃO TAMBÉM NO FILTRO DE CATEGORIAS: Aponta para a pasta uploads/ direta
     const handleCategoryFilter = async (categoryId) => {
         setSelectedCategory(categoryId);
         try {
             const productsData = await ProductService.getProdutos();
             if (!productsData) return;
 
-            const mapped = productsData.map(p => ({
-                id: p.id,
-                name: p.nome,
-                store: p.loja?.nomeLoja || "Confeitaria Doce",
-                price: p.preco || 0.0,
-                categoryId: p.categoria?.id || null,
-                imageUrl: p.imagemUrl ? `http://localhost:8080/imagens/${p.imagemUrl}` : IMAGE_MAP['default']
-            }));
+            const mapped = productsData.map(p => {
+                const imagePath = p.imagemUrl || p.fotoUrl || p.imagem;
+                let fullProductPath;
+
+                if (imagePath) {
+                    if (imagePath.startsWith('http')) {
+                        fullProductPath = imagePath;
+                    } else {
+                        let cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+                        if (!cleanPath.startsWith('uploads') && !cleanPath.startsWith('imagens')) {
+                            cleanPath = `uploads/${cleanPath}`;
+                        }
+                        fullProductPath = `http://localhost:8080/${cleanPath}`;
+                    }
+                } else {
+                    fullProductPath = IMAGE_MAP['default'];
+                }
+
+                return {
+                    id: p.id,
+                    name: p.nome,
+                    store: p.loja?.nomeLoja || "Confeitaria Doce",
+                    price: p.preco || 0.0,
+                    categoryId: p.categoria?.id || null,
+                    imageUrl: fullProductPath
+                };
+            });
 
             if (categoryId == null) {
                 setOffers(mapped);
@@ -264,7 +336,7 @@ const HomePage = () => {
     return (
         <div className={Styles.docelivery_homepage}>
             
-            {/* 1. HEADER INTEGRADO COM IDENTIDADE VISUAL COMPLETA */}
+            {/* 1. HEADER INTEGRADO */}
             <header className={Styles.main_header}>
                 <div className={Styles.header_left} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                     <img src={Logoloja} alt="Logo DoceLivery" className={Styles.logo} />
@@ -344,10 +416,46 @@ const HomePage = () => {
                 </div>
             </header>
 
-            {/* CONTEÚDO PRINCIPAL EM SEÇÕES VERTICAIS (IGUAL À IMAGEM 2) */}
+            {/* 🟢 BANNER DE PEDIDO ATIVO */}
+            {temPedidoAtivo && (
+                <div style={{
+                    backgroundColor: '#fff0f6',
+                    border: '2px solid #ff69b4',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    margin: '20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <IoTimeOutline size={24} color="#ff69b4" />
+                        <div>
+                            <h4 style={{ margin: 0, color: '#333' }}>Pedido em andamento!</h4>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>Acompanhe a produção do seu doce em tempo real.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/docelivery/cliente/pedido-status')}
+                        style={{
+                            backgroundColor: '#ff69b4',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Ver Status
+                    </button>
+                </div>
+            )}
+
             <main className={Styles.main_content}>
 
-                {/* SEÇÃO DINÂMICA: RESULTADO DA BUSCA POR INPUT */}
+                {/* SEÇÃO DINÂMICA: RESULTADO DA BUSCA */}
                 {filteredStores !== null && (
                     <section className={Styles.all_stores}>
                         <h2>Resultados encontrados para "{searchTerm}"</h2>
@@ -411,7 +519,7 @@ const HomePage = () => {
                     </div>
                 </section>
 
-                {/* SEÇÃO 4: OFERTAS DOCES (PRODUTOS INTEGRADOS DO BANCO) */}
+                {/* SEÇÃO 4: OFERTAS DOCES E KITS FESTA */}
                 <section className={Styles.sweet_offers}>
                     <div className={Styles.offers_header}>
                         <h2>Ofertas Doces</h2>
@@ -434,7 +542,7 @@ const HomePage = () => {
                     </div>
                 </section>
 
-                {/* SEÇÃO 5: CONFEITARIAS PRÓXIMAS (GEOLOCALIZAÇÃO) */}
+                {/* SEÇÃO 5: CONFEITARIAS PRÓXIMAS */}
                 <section className={Styles.nearby_stores}>
                     <h2>📍 Confeitarias Próximas de Você</h2>
                     {locationStatus === 'loading' && <p className={Styles.section_subtitle}>Buscando sua localização GPS...</p>}
@@ -455,7 +563,7 @@ const HomePage = () => {
                     </div>
                 </section>
 
-                {/* SEÇÃO 6: TODAS AS LOJAS (LISTAGEM DE RODAPÉ) */}
+                {/* SEÇÃO 6: TODAS AS LOJAS */}
                 <section className={Styles.all_stores}>
                     <h2>Todas as Lojas</h2>
                     <div className={Styles.all_stores_grid}>
@@ -484,7 +592,6 @@ const HomePage = () => {
                 </section>
             </main>
 
-            {/* RODAPÉ E SIDEBARS FLUTUANTES */}
             <Footer />
 
             <aside className={`${Styles.cart_sidebar} ${isCartOpen ? Styles.open : ''}`}>

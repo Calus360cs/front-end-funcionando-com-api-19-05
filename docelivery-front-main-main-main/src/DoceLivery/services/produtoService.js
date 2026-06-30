@@ -21,7 +21,6 @@ class ProdutoService {
    * Cria um novo produto no backend
    */
   async criarProduto(dados, imagem, confeiteiroId) {
-    // ✅ Validação 1: Dados obrigatórios
     if (!dados || typeof dados !== 'object') {
       throw new Error('❌ Dados do produto são obrigatórios e devem ser um objeto');
     }
@@ -42,10 +41,8 @@ class ProdutoService {
       throw new Error('❌ ID do confeiteiro é obrigatório');
     }
 
-    // ✅ Fallback seguro: garante que o ID nunca vai como undefined na URL
     const idConfeiteiroFinal = parseInt(confeiteiroId) || 10005;
 
-    // ✅ Validação 2: Tipo de dados
     if (typeof dados.preco === 'string') {
       dados.preco = parseFloat(dados.preco);
     }
@@ -53,7 +50,6 @@ class ProdutoService {
       dados.estoque = parseInt(dados.estoque) || 0;
     }
 
-    // ✅ Construção do FormData (Multipart)
     const formData = new FormData();
 
     const produtoDTO = {
@@ -73,11 +69,6 @@ class ProdutoService {
     if (imagem && imagem instanceof File) {
       formData.append("imagem", imagem);
     }
-
-    console.log('📦 ProdutoService.criarProduto():');
-    console.log('   Confeiteiro ID:', idConfeiteiroFinal);
-    console.log('   Dados Enviados no DTO:', produtoDTO);
-    console.log('   Imagem:', imagem ? `${imagem.name} (${imagem.size} bytes)` : 'nenhuma');
 
     return await ApiService.post(
       `${API_ENDPOINTS.PRODUTO.BASE}?confeiteiroId=${idConfeiteiroFinal}`,
@@ -121,22 +112,27 @@ class ProdutoService {
       formData.append("imagem", imagem);
     }
 
-    console.log('📦 ProdutoService.atualizarProduto():');
-    console.log('   ID:', id);
-    console.log('   Dados Enviados no DTO:', produtoDTO);
-    console.log('   Imagem:', imagem ? `${imagem.name} (${imagem.size} bytes)` : 'nenhuma');
-
-    // ✅ PUT limpando headers padrão
     return await ApiService.put(API_ENDPOINTS.PRODUTO.BY_ID(id), formData, {
       headers: {
         'Content-Type': undefined
       }
     });
   }
+
+  /**
+   * Deleta um produto do catálogo
+   */
   async deletarProduto(id) {
     return await ApiService.delete(API_ENDPOINTS.PRODUTO.BY_ID(id));
   }
+
+  /**
+   * Dispara a inversão de ativação lógica no endpoint do Java
+   */
+  async desativarProduto(id) {
+    if (!id) throw new Error('❌ ID do produto é obrigatório');
+    return await ApiService.put(`/produtos/${id}/desativar`);
+  }
 }
 
-// Exportando a instância da classe para coincidir com a chamada da HomePage
 export default new ProdutoService();

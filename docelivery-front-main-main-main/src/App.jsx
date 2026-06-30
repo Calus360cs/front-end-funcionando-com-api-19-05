@@ -24,6 +24,7 @@ import AdminDashboard from './DoceLivery/paginas/AdminDashboard';
 import AdminChat from './DoceLivery/Components/AdminChat';
 import Agenda from './DoceLivery/Components/Agenda';
 import CalendarioEncomendas from './DoceLivery/Components/CalendarioEncomendas';
+import MeusPedidos from "../../src/DoceLivery/paginas/MeusPedidos.jsx";
 
 // NOVA IMPORTAÇÃO: Adicionando o componente da tela de Dashboard do Entregador
 import EntregadorDashboard from './DoceLivery/paginas/EntregadorDashboard'; 
@@ -73,6 +74,7 @@ function App() {
                   <Route path="/docelivery/cliente/recuperar-senha" element={<RecuperarSenha />} />
                   <Route path="/docelivery/cliente/pagamento" element={<Pagamento />} />
                   <Route path="/docelivery/cliente/perfil" element={<PerfilCliente />} />
+                  <Route path="/docelivery/cliente/meus-pedidos" element={<MeusPedidos />} />
                   <Route path="/docelivery/cliente/pedido-status" element={<OrderStatus />} />
                   <Route path="/docelivery/loja/:lojaId" element={<LojaIndividual />} />
                   <Route path="/docelivery/admin/login" element={<LoginAdmin />} />

@@ -118,45 +118,43 @@
 .combosGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 
 .comboCard {
-    display: flex; align-items: center; gap: 14px;
-    background: linear-gradient(135deg, #fff7ed, #fdf4ff);
-    border-radius: 14px; padding: 16px;
-    border: 1.5px solid rgba(245,158,11,0.22);
-    box-shadow: 0 2px 10px rgba(245,158,11,0.07);
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(113,70,39,0.08);
+    border: 1px solid #f4d4c8;
     transition: transform 0.2s, box-shadow 0.2s;
 }
-.comboCard:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(245,158,11,0.14); }
+.comboCard:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(113,70,39,0.13); }
 
-.kitIconWrapper {
-    width: 48px; height: 48px; min-width: 48px;
-    background: linear-gradient(135deg, #f59e0b, #ec4899);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;
+.comboCard .produtoImagem { height: 160px; } /* Ajuste de altura para Kits */
+
+.comboInfo { padding: 16px; flex-grow: 1; }
+.comboInfo h4 { margin: 0 0 6px; font-size: 1.05rem; font-weight: 700; color: #462a17; }
+.comboInfo p  { margin: 0 0 10px; font-size: 0.85rem; color: #5b4a3f; line-height: 1.5; }
+.comboProdutos { font-size: 0.8rem; color: #5b4a3f; margin-bottom: 8px; }
+.comboPreco   { font-size: 1.05rem; font-weight: 700; color: #059669; }
+
+.comboActions {
+    display: flex; gap: 6px; padding: 12px 16px;
+    border-top: 1px solid #f0e0d8;
 }
-
-.comboInfo { flex: 1; min-width: 0; }
-.comboInfo h4 { margin: 0 0 3px; font-size: 0.95rem; font-weight: 700; color: #1F2937; }
-.comboInfo p  { margin: 0 0 5px; font-size: 0.8rem; color: #6B7280; }
-.comboPreco   { font-size: 0.95rem; font-weight: 800; color: #059669; }
-
-.comboActions { display: flex; flex-direction: column; gap: 6px; }
 .comboActions button {
-    width: 34px; height: 34px; border: none; border-radius: 8px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s;
+    flex: 1; padding: 7px 10px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: opacity 0.2s;
 }
-.comboActions button:hover { opacity: 0.8; }
-.comboActions button:first-child { background: #3B82F6; color: white; }
-.comboActions button:last-child  { background: #EF4444; color: white; }
+.comboActions button:hover { opacity: 0.85; }
+.comboActions .toggleBtn { background: #F59E0B; color: white; }
+.comboActions button:nth-child(2) { background: #3B82F6; color: white; } /* Edit */
+.comboActions button:last-child  { background: #EF4444; color: white; } /* Delete */
 
 .emptyKits {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding: 28px 20px;
-    background: rgba(245,158,11,0.05);
-    border: 2px dashed rgba(245,158,11,0.25);
-    border-radius: 14px; color: #9CA3AF; text-align: center; margin-bottom: 24px;
+    text-align: center; color: #9CA3AF; padding: 36px;
+    font-size: 0.9rem; background: rgba(113,70,39,0.04); /* Cor mais neutra */
+    border-radius: 14px; border: 2px dashed rgba(113,70,39,0.15); /* Borda mais neutra */
+    margin-bottom: 24px;
 }
 .emptyKits span   { font-size: 2rem; }
 .emptyKits p      { font-size: 0.88rem; margin: 0; }
-.emptyKits strong { color: #8b5cf6; }
+.emptyKits strong { color: #8b5cf6; } /* Mantém a cor vibrante para o call to action */
 
 /* ── MODAL ── */
 .modalOverlay {

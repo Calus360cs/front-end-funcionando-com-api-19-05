@@ -1,36 +1,41 @@
 import React from 'react';
 
 const PedidoCard = ({ pedido, onAtualizarStatus }) => {
-    // Evita quebra caso o componente seja renderizado sem dados por milissegundos
     if (!pedido) return null;
 
     const { id, status, cliente, valorPedido, itens, numeroPedido, agendado, dataEntregaAgendada } = pedido;
-
-    // Garantindo que o status seja avaliado sempre em letras maiúsculas
     const statusChave = status ? status.toUpperCase() : 'NOVO';
 
-    // 1. CORRIGIDO: Alinhado perfeitamente com os Enums do seu Java (StatusPedido)
+    // Cores alinhadas ao Enum e status de pagamento do Pix/Dinheiro
     const statusColors = {
-        NOVO: '#007bff',          // Azul
-        PREPARANDO: '#ffc107',    // Amarelo
-        PRONTO: '#28a745',        // Verde
-        AGENDADO: '#17a2b8',      // Ciano
-        CANCELADO: '#dc3545',     // Vermelho
+        NOVO: '#007bff',          
+        PREPARANDO: '#ffc107',    
+        PRONTO: '#28a745',        
+        AGENDADO: '#17a2b8',      
+        CANCELADO: '#dc3545',     
+        PENDING: '#f59e0b',       
+        PENDENTE: '#f59e0b',      
+        AGUARDANDO_PAGAMENTO: '#6f42c1'
     };
 
-    // 2. CORRIGIDO: Nomes amigáveis alinhados aos novos status
     const statusTexto = {
         NOVO: 'Novo Pedido',
         PREPARANDO: 'Em Preparação',
         PRONTO: 'Pronto para Retirada',
         AGENDADO: 'Agendado',
-        CANCELADO: 'Cancelado'
+        CANCELADO: 'Cancelado',
+        PENDING: 'Aguardando Pix',
+        PENDENTE: 'Aguardando Pix',
+        AGUARDANDO_PAGAMENTO: 'Pagar na Entrega'
     };
 
     const getAcoes = () => {
         switch (statusChave) {
             case 'NOVO':
             case 'AGENDADO':
+            case 'PENDING':
+            case 'PENDENTE':
+            case 'AGUARDANDO_PAGAMENTO':
                 return (
                     <>
                         <button
@@ -87,7 +92,6 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
             <div style={{ fontSize: '14px', color: '#555' }}>
                 <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {cliente?.nome || 'Cliente não identificado'}</p>
                 
-                {/* Exibe a data se for um pedido agendado */}
                 {agendado && dataEntregaAgendada && (
                     <p style={{ margin: '5px 0', color: '#d63384' }}>
                         <strong>Entrega:</strong> {new Date(dataEntregaAgendada).toLocaleString('pt-BR')}
@@ -95,11 +99,21 @@ const PedidoCard = ({ pedido, onAtualizarStatus }) => {
                 )}
 
                 <div style={{ margin: '10px 0', borderTop: '1px dashed #eee', paddingTop: '10px' }}>
-                    <strong>Itens:</strong>
+                    <strong style={{ display: 'block', marginBottom: '5px' }}>Itens:</strong>
                     <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
                         {itens?.map((item, index) => (
-                            <li key={index}>
-                                {item.quantidade}x {item.produto?.nome || 'Doce'}
+                            <li key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {/* 🖼️ IMAGEM BLINDADA: Substitui automaticamente caminhos errados do banco sem estourar 404 */}
+                                <img 
+                                    src={item.produto?.fotoUrl || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100'} 
+                                    alt="doce" 
+                                    style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100';
+                                    }}
+                                />
+                                <span>{item.quantidade}x {item.produto?.nome || 'Doce'}</span>
                             </li>
                         ))}
                     </ul>

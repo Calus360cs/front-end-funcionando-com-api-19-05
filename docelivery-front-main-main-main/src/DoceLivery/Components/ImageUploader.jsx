@@ -8,8 +8,17 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const resolveImageUrl = (img) => {
     if (!img) return null;
     if (typeof img === 'object') return null; // File object — sem URL ainda
-    if (String(img).startsWith('http') || String(img).startsWith('data:') || String(img).startsWith('/src')) return img;
-    return `${API_BASE}/uploads/${img}`;
+    
+    const imageSrc = String(img);
+    if (imageSrc.startsWith('http') || imageSrc.startsWith('data:') || imageSrc.startsWith('/src')) {
+        return imageSrc;
+    }
+
+    // Remove /uploads/ do início se já existir para não duplicar
+    const cleanedPath = imageSrc.startsWith('/uploads/') ? imageSrc.substring('/uploads/'.length) : imageSrc;
+    
+    // Constrói a URL final corretamente
+    return `${API_BASE}/uploads/${cleanedPath}`;
 };
 
 const ImageUploader = ({ onImageSelect, currentImage }) => {

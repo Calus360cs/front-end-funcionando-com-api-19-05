@@ -14,7 +14,6 @@ import PaymentService from '../services/paymentService';
 import AuthService from '../services/authService';
 import Styles from './Pagamento.module.css';
 
-// ─── Cupons válidos (mock — conectar à API depois) ───────────────────────────
 const CUPONS_VALIDOS = {
     'DOCE10': { desconto: 0.10, label: '10% de desconto', tipo: 'percentual' },
     'FRETE0': { desconto: 5.00, label: 'Frete grátis', tipo: 'fixo_frete' },
@@ -22,13 +21,12 @@ const CUPONS_VALIDOS = {
 };
 
 const PAYMENT_METHODS = [
-    { id: 'PIX',      label: 'Pix',               icon: <SiPix size={20} />,          desc: 'Aprovação imediata' },
-    { id: 'CREDITO',  label: 'Crédito',           icon: <FaCreditCard size={20} />,   desc: 'Até 12x sem juros' },
-    { id: 'DEBITO',   label: 'Débito',            icon: <FaCreditCard size={20} />,   desc: 'Débito à vista' },
-    { id: 'DINHEIRO', label: 'Dinheiro',          icon: <FaMoneyBillWave size={20} />,desc: 'Pagar na entrega' },
+    { id: 'PIX',         label: 'Pix',         icon: <SiPix size={20} />,          desc: 'Aprovação imediata' },
+    { id: 'CREDIT_CARD', label: 'Crédito',     icon: <FaCreditCard size={20} />,   desc: 'Até 12x sem juros' },
+    { id: 'DEBIT_CARD',  label: 'Débito',      icon: <FaCreditCard size={20} />,   desc: 'Débito à vista' },
+    { id: 'DINHEIRO',    label: 'Dinheiro',    icon: <FaMoneyBillWave size={20} />,desc: 'Pagar na entrega' },
 ];
 
-// ─── Componente de seção colapsável ──────────────────────────────────────────
 const Section = ({ icon, title, badge, children, defaultOpen = true }) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
@@ -46,13 +44,11 @@ const Section = ({ icon, title, badge, children, defaultOpen = true }) => {
     );
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 const Pagamento = () => {
     const navigate = useNavigate();
     const { cartItems, activeStore, clearCart } = useCartStore();
     const { adicionarVenda } = useDashboard();
 
-    // Dados do checkout
     const checkoutData = useMemo(() => JSON.parse(localStorage.getItem('checkoutData') || '{}'), []);
     const itens = useMemo(
         () => cartItems.length > 0 ? cartItems : (checkoutData.cartItems || []),
@@ -61,7 +57,6 @@ const Pagamento = () => {
     const loja    = activeStore || checkoutData.activeStore || null;
     const deliveryFeeBase = parseFloat(checkoutData.deliveryFee ?? 5.00);
 
-    // Endereço do cliente
     const clienteLocal = useMemo(() => {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
         const d = JSON.parse(localStorage.getItem('dadosCliente') || '{}');
@@ -76,12 +71,10 @@ const Pagamento = () => {
         };
     }, []);
 
-    // ── Estados ───────────────────────────────────────────────────────────────
     const [metodo,          setMetodo]          = useState('');
     const [isProcessing,    setIsProcessing]    = useState(false);
     const [pedidoConcluido, setPedidoConcluido] = useState(false);
 
-    // Entrega
     const [editandoEndereco, setEditandoEndereco] = useState(false);
     const [endereco, setEndereco] = useState({
         logradouro:  clienteLocal.endereco,
@@ -94,23 +87,19 @@ const Pagamento = () => {
     });
     const [cepLoading, setCepLoading] = useState(false);
 
-    // Cupom
-    const [cupomInput,   setCupomInput]   = useState('');
+    const [cupomInput,    setCupomInput]   = useState('');
     const [cupomAplicado, setCupomAplicado] = useState(null);
     const [cupomErro,    setCupomErro]    = useState('');
 
-    // Info adicionais
     const [obsGeral,    setObsGeral]    = useState('');
     const [semContato,  setSemContato]  = useState(false);
     const [agendado,    setAgendado]    = useState(false);
     const [dataAgend,   setDataAgend]   = useState('');
 
-    // Cartão (formulário)
     const [cardData, setCardData] = useState({ numero: '', nome: '', validade: '', cvv: '' });
     const [troco,    setTroco]    = useState('');
     const [parcelas, setParcelas] = useState('1');
 
-    // ── Cálculos ──────────────────────────────────────────────────────────────
     const subtotal = useMemo(() =>
         itens.reduce((a, i) => a + (parseFloat(i.price) || 0) * (parseInt(i.quantity) || 1), 0),
     [itens]);
@@ -129,13 +118,12 @@ const Pagamento = () => {
     const totalDesc = cupomAplicado?.tipo === 'percentual' ? descontoCupom : 0;
     const total     = subtotal - totalDesc + frete;
 
-    // ── Handlers de endereço ──────────────────────────────────────────────────
     const handleCepChange = async (val) => {
         const digits = val.replace(/\D/g, '');
         const fmt = digits.slice(0, 8).replace(/(\d{5})(\d{1,3})$/, '$1-$2');
         setEndereco(p => ({ ...p, cep: fmt }));
         if (digits.length === 8) {
-            setCepLoading(true);
+            setCepLoading(true); 
             try {
                 const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
                 const d = await r.json();
@@ -152,7 +140,6 @@ const Pagamento = () => {
         endereco.bairro, endereco.cidade, endereco.uf
     ].filter(Boolean).join(', ');
 
-    // ── Handler cupom ─────────────────────────────────────────────────────────
     const aplicarCupom = () => {
         const c = CUPONS_VALIDOS[cupomInput.toUpperCase().trim()];
         if (c) { setCupomAplicado({ ...c, codigo: cupomInput.toUpperCase().trim() }); setCupomErro(''); }
@@ -161,14 +148,12 @@ const Pagamento = () => {
 
     const removerCupom = () => { setCupomAplicado(null); setCupomInput(''); setCupomErro(''); };
 
-    // ── Mascaras cartão ───────────────────────────────────────────────────────
     const maskCard   = v => v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})/g,'$1 ').trim();
     const maskExpiry = v => v.replace(/\D/g,'').slice(0,4).replace(/(\d{2})(\d)/,'$1/$2');
 
-    // ── Confirmar pedido ──────────────────────────────────────────────────────
     const handleConfirmar = async () => {
         if (!metodo) { alert('Selecione a forma de pagamento.'); return; }
-        if ((metodo === 'CREDITO' || metodo === 'DEBITO') &&
+        if ((metodo === 'CREDIT_CARD' || metodo === 'DEBIT_CARD') &&
             (!cardData.numero || !cardData.nome || !cardData.validade || !cardData.cvv)) {
             alert('Preencha todos os dados do cartão.'); return;
         }
@@ -176,13 +161,15 @@ const Pagamento = () => {
         try {
             const usuario = AuthService.getCurrentUser();
             
-            // 1. Envia o pedido para salvar na sua tabela local inicial via OrderService
+            // 1. Envia o pedido mapeado com o status exato que seu Enum Java aceita
             const novoPedido = {
-                cliente:              { id: usuario?.id },
-                loja:                 { id: Number(loja?.id || 4) },
+                cliente:               { id: Number(usuario?.id || 7) },
+                loja:                 { id: Number(loja?.id || 2) }, // ✅ Garanta que o ID bata com a sua loja ativa (vimos ID 2 no seu banco!)
+                confeiteiro:          { id: Number(loja?.id || 2) }, // 🟢 ADICIONE ESTA LINHA: Alimenta o confeiteiro_id para o banco não salvar NULL!
+                
                 valorPedido:          total,
-                formaPagamento:       metodo,
-                status:               'NOVO',
+                formaPagamento:       metodo, 
+                status:               metodo === 'DINHEIRO' ? 'AGUARDANDO_PAGAMENTO' : 'NOVO', 
                 agendado:             agendado,
                 dataEntregaAgendada:  agendado ? dataAgend : null,
                 observacao:           obsGeral,
@@ -198,20 +185,20 @@ const Pagamento = () => {
             const res = await OrderService.createOrder(novoPedido);
             const pedidoSalvo = res?.data || res;
 
+            // 2. Transmite os dados para o gateway Mercado Pago
             const dadosPagamentoDTO = {
-                id:              pedidoSalvo.id || null, // Repassa o ID gerado pelo banco para o webhook usar depois
-                clienteId:       Number(usuario?.id || 1), // 🧠 IDs enviados evitam o erro de id nulo!
-                lojaId:          Number(loja?.id || 2),    // 🧠 IDs enviados evitam o erro de id nulo!
+                id:              pedidoSalvo.id || null, 
+                clienteId:       Number(usuario?.id || 7), 
+                lojaId:          Number(loja?.id || 10),    
                 nomeCliente:     usuario?.nome || clienteLocal.nome,
                 telefoneCliente: usuario?.telefone || "",
                 enderecoEntrega: enderecoFormatado,
-                status:          "NOVO",
-                total:           total, // O Java espera a propriedade com o nome 'total' (Record do PedidoDTO)
+                status:          metodo === 'DINHEIRO' ? 'AGUARDANDO_PAGAMENTO' : 'NOVO',
+                total:           total, 
                 
-                // Dados adicionais que o Mercado Pago vai ler de dentro do DTO se necessário
-                email:           'TESTUSER8634487054543614069@testuser.com', // 🟢 Sua conta de teste do MP ativa!
-                tokenCartao:     (metodo === 'CREDITO' || metodo === 'DEBITO') ? cardData.numero : null,
-                metodo:          metodo.toLowerCase(),
+                email:           usuario?.email || 'TESTUSER8440996294542294927@testuser.com', 
+                tokenCartao:     (metodo === 'CREDIT_CARD' || metodo === 'DEBIT_CARD') ? cardData.numero : null,
+                metodo:          metodo.toLowerCase(), 
 
                 itens: itens.map(item => ({
                     produtoId:     item.id,
@@ -221,12 +208,10 @@ const Pagamento = () => {
                 }))
             };
 
-            // 3. Dispara a requisição passando o DTO unificado completo
             console.log("Processando o pagamento via " + metodo, dadosPagamentoDTO);
             const respostaPagamento = await PaymentService.processarPagamento(dadosPagamentoDTO);
             console.log('Resposta do pagamento recebida:', respostaPagamento);
 
-            // 4. Executa as limpezas de estado e redirecionamentos originais do seu fluxo
             localStorage.setItem('currentOrder', JSON.stringify(pedidoSalvo));
             adicionarVenda(total);
             clearCart();
@@ -240,7 +225,6 @@ const Pagamento = () => {
         }
     };
 
-    // ── Tela de sucesso ───────────────────────────────────────────────────────
     if (pedidoConcluido) return (
         <div className={Styles.container}>
             <div className={Styles.successWrap}>
@@ -265,11 +249,8 @@ const Pagamento = () => {
         </div>
     );
 
-    // ── Render principal ──────────────────────────────────────────────────────
     return (
         <div className={Styles.container}>
-
-            {/* ── Header ── */}
             <div className={Styles.header}>
                 <button className={Styles.backBtn} onClick={() => window.history.back()}>
                     <IoArrowBack size={22}/>
@@ -281,10 +262,6 @@ const Pagamento = () => {
             </div>
 
             <div className={Styles.content}>
-
-                {/* ═══════════════════════════════════════════════════
-                    1. INFORMAÇÕES DE ENTREGA
-                ═══════════════════════════════════════════════════ */}
                 <Section icon={<IoLocationSharp size={18}/>} title="Entrega" defaultOpen={true}>
                     <div className={Styles.tempoEstimado}>
                         <IoTime size={16}/>
@@ -357,17 +334,13 @@ const Pagamento = () => {
                                         placeholder="Cidade"/>
                                 </div>
                             </div>
-                            <button className={Styles.btnSalvarEnd}
-                                onClick={() => setEditandoEndereco(false)}>
+                            <button className={Styles.btnSalvarEnd} onClick={() => setEditandoEndereco(false)}>
                                 Confirmar Endereço
                             </button>
                         </div>
                     )}
                 </Section>
 
-                {/* ═══════════════════════════════════════════════════
-                    2. CUPOM DE DESCONTO
-                ═══════════════════════════════════════════════════ */}
                 <Section icon={<IoTicket size={18}/>} title="Cupom de Desconto" defaultOpen={false}>
                     {cupomAplicado ? (
                         <div className={Styles.cupomAplicado}>
@@ -398,19 +371,13 @@ const Pagamento = () => {
                     <p className={Styles.hint}>Tente: DOCE10 · FRETE0 · PRIMEIRA</p>
                 </Section>
 
-                {/* ═══════════════════════════════════════════════════
-                    3. RESUMO DO PEDIDO
-                ═══════════════════════════════════════════════════ */}
-                <Section icon={<IoStorefront size={18}/>} title="Resumo do Pedido"
-                    badge={`${itens.length} ${itens.length === 1 ? 'item' : 'itens'}`}>
-
+                <Section icon={<IoStorefront size={18}/>} title="Resumo do Pedido" badge={`${itens.length} ${itens.length === 1 ? 'item' : 'itens'}`}>
                     <ul className={Styles.itemList}>
                         {itens.map((item, i) => (
                             <li key={item.id || i} className={Styles.item}>
                                 <div className={Styles.itemLeft}>
                                     {(item.imageUrl || item.image) &&
-                                        <img src={item.imageUrl || item.image}
-                                            alt={item.name} className={Styles.itemImg}/>}
+                                        <img src={item.imageUrl || item.image} alt={item.name} className={Styles.itemImg}/>}
                                     <div>
                                         <span className={Styles.itemName}>{item.name || item.title}</span>
                                         <span className={Styles.itemQty}>
@@ -441,9 +408,6 @@ const Pagamento = () => {
                     </div>
                 </Section>
 
-                {/* ═══════════════════════════════════════════════════
-                    4. INFORMAÇÕES ADICIONAIS
-                ═══════════════════════════════════════════════════ */}
                 <Section icon={<IoInformationCircle size={18}/>} title="Informações Adicionais" defaultOpen={false}>
                     <div className={Styles.formGroup}>
                         <label>Observações do pedido</label>
@@ -456,13 +420,11 @@ const Pagamento = () => {
                         />
                     </div>
                     <label className={Styles.checkRow}>
-                        <input type="checkbox" checked={semContato}
-                            onChange={e => setSemContato(e.target.checked)}/>
+                        <input type="checkbox" checked={semContato} onChange={e => setSemContato(e.target.checked)}/>
                         <span>Não ligar na entrega</span>
                     </label>
                     <label className={Styles.checkRow}>
-                        <input type="checkbox" checked={agendado}
-                            onChange={e => setAgendado(e.target.checked)}/>
+                        <input type="checkbox" checked={agendado} onChange={e => setAgendado(e.target.checked)}/>
                         <span>Agendar para outra data</span>
                     </label>
                     {agendado && (
@@ -476,12 +438,7 @@ const Pagamento = () => {
                     )}
                 </Section>
 
-                {/* ═══════════════════════════════════════════════════
-                    5. PAGAMENTO
-                ═══════════════════════════════════════════════════ */}
                 <Section icon={<FaCreditCard size={16}/>} title="Pagamento">
-
-                    {/* Grade de métodos */}
                     <div className={Styles.methodGrid}>
                         {PAYMENT_METHODS.map(m => (
                             <button
@@ -497,13 +454,12 @@ const Pagamento = () => {
                         ))}
                     </div>
 
-                    {/* ── Formulário Cartão ── */}
-                    {(metodo === 'CREDITO' || metodo === 'DEBITO') && (
+                    {(metodo === 'CREDIT_CARD' || metodo === 'DEBIT_CARD') && (
                         <div className={Styles.cardForm}>
                             <div className={Styles.cardPreview}>
                                 <div className={Styles.cardPreviewTop}>
                                     <span className={Styles.cardBrand}>
-                                        {metodo === 'CREDITO' ? '💳 Crédito' : '💳 Débito'}
+                                        {metodo === 'CREDIT_CARD' ? '💳 Crédito' : '💳 Débito'}
                                     </span>
                                     <FaCreditCard size={28} style={{ color: 'rgba(255,255,255,0.7)' }}/>
                                 </div>
@@ -558,11 +514,10 @@ const Pagamento = () => {
                                     />
                                 </div>
                             </div>
-                            {metodo === 'CREDITO' && (
+                            {metodo === 'CREDIT_CARD' && (
                                 <div className={Styles.formGroup}>
                                     <label>Parcelas</label>
-                                    <select className={Styles.input} value={parcelas}
-                                        onChange={e => setParcelas(e.target.value)}>
+                                    <select className={Styles.input} value={parcelas} onChange={e => setParcelas(e.target.value)}>
                                         {[1,2,3,4,5,6,8,10,12].map(n => (
                                             <option key={n} value={n}>
                                                 {n}x de R$ {(total / n).toFixed(2)}{n === 1 ? ' (sem juros)' : ''}
@@ -574,7 +529,6 @@ const Pagamento = () => {
                         </div>
                     )}
 
-                    {/* ── PIX ── */}
                     {metodo === 'PIX' && (
                         <div className={Styles.pixBox}>
                             <div className={Styles.qrCode}>📱</div>
@@ -583,7 +537,6 @@ const Pagamento = () => {
                         </div>
                     )}
 
-                    {/* ── Dinheiro ── */}
                     {metodo === 'DINHEIRO' && (
                         <div className={Styles.dinheiroBox}>
                             <div className={Styles.formGroup}>
@@ -608,10 +561,8 @@ const Pagamento = () => {
                         </div>
                     )}
                 </Section>
+            </div>
 
-            </div>{/* fim .content */}
-
-            {/* ── Rodapé fixo ── */}
             <div className={Styles.footer}>
                 <div className={Styles.footerSummary}>
                     <div className={Styles.footerRow}>
@@ -626,17 +577,10 @@ const Pagamento = () => {
                         <span>Total</span><strong>R$ {total.toFixed(2)}</strong>
                     </div>
                 </div>
-                <button
-                    className={Styles.btnConfirm}
-                    onClick={handleConfirmar}
-                    disabled={!metodo || isProcessing}
-                >
-                    {isProcessing
-                        ? <span className={Styles.spinner}/>
-                        : `Confirmar Pedido · R$ ${total.toFixed(2)}`}
+                <button className={Styles.btnConfirm} onClick={handleConfirmar} disabled={!metodo || isProcessing}>
+                    {isProcessing ? <span className={Styles.spinner}/> : `Confirmar Pedido · R$ ${total.toFixed(2)}`}
                 </button>
             </div>
-
         </div>
     );
 };

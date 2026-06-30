@@ -5,9 +5,9 @@ import ConfeiteiroService from '../services/confeiteiroService';
 import { IoArrowBack, IoStar, IoLocation, IoTime, IoCall, IoCalendarOutline } from 'react-icons/io5';
 import Styles from './LojaIndividual.module.css';
 import { IMAGE_MAP } from '../data/imageImports';
+import { getImageUrl } from '../utils/urlUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const IMAGE_URL = `${API_BASE_URL}/uploads`;
+
 
 const LojaIndividual = () => {
     const { lojaId } = useParams();
@@ -43,11 +43,7 @@ const LojaIndividual = () => {
             descricao: info.descricao || dadosBrutos?.descricao || '',
             avaliacao: dadosBrutos?.avaliacao || '5.0',
             totalAvaliacoes: dadosBrutos?.totalAvaliacoes || '0',
-            imagem: rawImagem
-                ? (String(rawImagem).startsWith('http') || String(rawImagem).startsWith('/src') || String(rawImagem).startsWith('data:')
-                    ? rawImagem
-                    : `${IMAGE_URL}/${rawImagem}`)
-                : IMAGE_MAP['brigadeiro'],
+            imagem: getImageUrl(rawImagem) || IMAGE_MAP['brigadeiro'],
             horarioFuncionamento: info.horarioFuncionamento || {
                 segunda: '08:00 - 18:00', terca: '08:00 - 18:00',
                 quarta: '08:00 - 18:00', quinta: '08:00 - 18:00',
