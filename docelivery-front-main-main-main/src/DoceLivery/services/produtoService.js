@@ -13,8 +13,12 @@ class ProdutoService {
   /**
    * Busca produtos por ID do confeiteiro/loja
    */
-  async getProdutosDaLoja(id) {
-    return await ApiService.get(API_ENDPOINTS.PRODUTO.BY_STORE(id));
+    async getProdutosDaLoja(id) {
+    try {
+      return await ApiService.get(API_ENDPOINTS.PRODUTO.BY_STORE(id));
+    } catch {
+      return await ApiService.get(`/produtos/confeiteiro/${id}`);
+    }
   }
 
   /**
@@ -41,7 +45,10 @@ class ProdutoService {
       throw new Error('❌ ID do confeiteiro é obrigatório');
     }
 
-    const idConfeiteiroFinal = parseInt(confeiteiroId) || 10005;
+    const idConfeiteiroFinal = parseInt(confeiteiroId);
+    if (!idConfeiteiroFinal) {
+      throw new Error('ID do confeiteiro não encontrado. Faça login novamente.');
+    }
 
     if (typeof dados.preco === 'string') {
       dados.preco = parseFloat(dados.preco);

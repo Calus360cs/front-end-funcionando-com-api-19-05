@@ -1,4 +1,3 @@
-import axios from 'axios';
 import ApiService from './api';
 import ConfeiteiroService from './confeiteiroService';
 import { API_ENDPOINTS } from './constants';
@@ -10,33 +9,39 @@ class AuthService {
    * @param {string} tipoDefault - Tipo de usuário caso não venha no objeto (cliente, confeiteiro, etc)
    */
   _salvarDadosUsuario(response, tipoDefault) {
-    console.log("Resposta da API:", response);
     const resp = response || {};
+    const token = resp.token || resp.accessToken || resp.jwt || resp.data?.token || resp.data?.accessToken || resp.data?.jwt || resp.user?.token || resp.user?.accessToken || resp.user?.jwt;
 
-    if (resp.token) {
-      localStorage.setItem('userToken', resp.token);
+    if (token) {
+      localStorage.setItem('userToken', token);
+      localStorage.setItem('token', token);
     }
 
-    const u = resp.user || resp.data || resp;
+    const u = resp.user || resp.data?.user || resp.data || resp;
 
     try {
       if (u) {
+        const tipoFinal = String(u.tipo || u.userType || tipoDefault || '').toLowerCase();
+        const id = u.id || u.idConfeiteiro || u.idCliente || u.idEntregador || u.idUsuario || u.userId || u.confeiteiroId || u.loja?.id || u.confeiteiro?.id || u.usuario?.id;
+
+        for (const key of ['user', 'userType', 'userId', 'userName', 'userEmail', 'userCpf', 'nomeConfeiteiro', 'nomeLoja', 'dadosConfeiteiro', 'userTelefone', 'userDataNascimento', 'userEndereco', 'userCep', 'userBairro', 'userCidade', 'userUf', 'userCnh', 'userVeiculo', 'userPlacaVeiculo', 'userCnpj']) {
+          localStorage.removeItem(key);
+        }
+
         localStorage.setItem('user', JSON.stringify(u));
 
-        const tipoFinal = (u.tipo || tipoDefault || '').toLowerCase();
         if (tipoFinal) localStorage.setItem('userType', tipoFinal);
 
         const nomeUsuario = u.nome || u.nomeConfeiteiro || u.userName || u.nomeLoja || u.nomeFantasia || u.loja?.nomeFantasia || '';
         if (nomeUsuario) {
           localStorage.setItem('userName', nomeUsuario);
-          // Se for entregador, garante que salva na chave esperada pelo Dashboard
           if (tipoFinal === 'entregador') {
             localStorage.setItem('nomeEntregador', nomeUsuario);
           }
         }
         if (u.nomeConfeiteiro) localStorage.setItem('nomeConfeiteiro', u.nomeConfeiteiro);
 
-        const lojaDados = u.loja || u;
+        const lojaDados = u.loja || u.confeiteiro || u;
         const nomeDaLoja = lojaDados?.nomeFantasia || lojaDados?.nomeConfeitaria || lojaDados?.nomeLoja || lojaDados?.nome || lojaDados?.descricao || '';
         if (nomeDaLoja) localStorage.setItem('nomeLoja', nomeDaLoja);
         if (u.nomeLoja) localStorage.setItem('nomeLoja', u.nomeLoja);
@@ -55,15 +60,13 @@ class AuthService {
         if (u.cidade) localStorage.setItem('userCidade', u.cidade);
         if (u.uf || u.estado) localStorage.setItem('userUf', u.uf || u.estado);
 
-        const id = u.id || u.idConfeiteiro || u.idCliente || u.idEntregador || u.idUsuario || u.userId || u.confeiteiroId || u.loja?.id;
-        if (id) localStorage.setItem('userId', id);
+        if (id) localStorage.setItem('userId', String(id));
 
         const maybeConfeiteiro = u.loja || u.confeiteiro || u;
         if (maybeConfeiteiro && (maybeConfeiteiro.nomeLoja || maybeConfeiteiro.nomeConfeitaria || maybeConfeiteiro.loja || maybeConfeiteiro.nomeFantasia || maybeConfeiteiro.nomeConfeiteiro)) {
           localStorage.setItem('dadosConfeiteiro', JSON.stringify(u));
         }
 
-        // Campos específicos do Entregador
         if (u.cnh) localStorage.setItem('userCnh', u.cnh);
         if (u.veiculo) localStorage.setItem('userVeiculo', u.veiculo);
         if (u.placaVeiculo) localStorage.setItem('userPlacaVeiculo', u.placaVeiculo);
@@ -97,8 +100,24 @@ class AuthService {
     try {
       const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_CONFEITEIRO, credentials);
       this._salvarDadosUsuario(response, 'confeiteiro');
-      const emailParaBuscar = credentials.email || response?.user?.email || response?.email || localStorage.getItem('userEmail');
-      try { await this.fetchAndSaveProfile(emailParaBuscar, undefined, 'confeiteiro'); } catch (e) { console.warn('Não foi possível buscar perfil após login confeiteiro', e); }
+
+      const dadosUsuario = response?.user || response?.data || response || {};
+      const emailParaBuscar = credentials.email || dadosUsuario?.email || localStorage.getItem('userEmail');
+
+      try {
+        if (emailParaBuscar) {
+          await this.fetchAndSaveProfile(emailParaBuscar, undefined, 'confeiteiro');
+        } else {
+          const dadosLocais = localStorage.getItem('user');
+          if (dadosLocais) {
+            const perfilFallback = JSON.parse(dadosLocais);
+            this._salvarDadosUsuario({ user: perfilFallback }, 'confeiteiro');
+          }
+        }
+      } catch (e) {
+        console.warn('Não foi possível buscar perfil após login confeiteiro', e);
+      }
+
       return response;
     } catch (error) {
       console.error('Erro no login do confeiteiro:', error.response?.data);
@@ -114,76 +133,77 @@ class AuthService {
   }
 
   async loginEntregador(email, senha) {
-    const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_ENTREGADOR, { email, senha });
-    this._salvarDadosUsuario(response, 'entregador');
-    
-    // CORREÇÃO: Passando o tipo 'entregador' para não disparar a rota do confeiteiro
-    try { 
-      await this.fetchAndSaveProfile(email, undefined, 'entregador'); 
-    } catch (e) { 
-      console.warn('Não foi possível buscar perfil após login entregador', e); 
+    try {
+      const response = await ApiService.post(API_ENDPOINTS.AUTH.LOGIN_ENTREGADOR, { email, senha });
+      this._salvarDadosUsuario(response, 'entregador');
+
+      const dadosUsuario = response?.user || response?.data || response || {};
+      const userId = dadosUsuario?.id || dadosUsuario?.idEntregador || dadosUsuario?.entregadorId || localStorage.getItem('userId');
+
+      if (userId) {
+        localStorage.setItem('userId', String(userId));
+      }
+
+      try {
+        const perfilResposta = await ApiService.get(API_ENDPOINTS.AUTH.ENTREGADOR_PROFILE);
+        if (perfilResposta) {
+          this._salvarDadosUsuario({ user: perfilResposta, token: response?.token || localStorage.getItem('userToken') }, 'entregador');
+        }
+      } catch (e) {
+        console.warn('Perfil do entregador não disponível na rota /auth/entregador/me, usando dados do login.', e);
+      }
+
+      try {
+        await this.fetchAndSaveProfile(email, undefined, 'entregador');
+      } catch (e) {
+        console.warn('Não foi possível buscar perfil após login entregador', e);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Erro no login do entregador:', error.response?.data || error.message);
+      throw error;
     }
-    return response;
   }
 
   // --- MÉTODOS DE CADASTRO E PERFIL ---
 
-  // CORREÇÃO: Adicionado o parâmetro 'userType' para mapear a requisição correta
   async fetchAndSaveProfile(email, token, userType = 'confeiteiro') {
     try {
       const emailParaBuscar = email || localStorage.getItem('userEmail') || localStorage.getItem('email');
-      if (!emailParaBuscar) {
+      const dadosLocais = localStorage.getItem('user');
+      const dadosUsuario = dadosLocais ? JSON.parse(dadosLocais) : null;
+
+      if (!emailParaBuscar && !dadosUsuario) {
         throw new Error('Email não fornecido para buscar perfil do usuário.');
       }
 
-      // Se for entregador e seu backend ainda não tiver uma rota específica de profile (/api/entregador/profile)
-      // os dados coletados no login e salvos pelo _salvarDadosUsuario já são autossuficientes.
-      if (userType === 'entregador') {
-        console.log("Perfil de entregador carregado através dos dados de autenticação.");
-        return JSON.parse(localStorage.getItem('user'));
+      if (userType === 'entregador' || userType === 'admin') {
+        console.log(`Perfil de ${userType} carregado através dos dados de autenticação.`);
+        return dadosUsuario || { email: emailParaBuscar, tipo: userType };
       }
 
-      const authToken = token || localStorage.getItem('userToken') || localStorage.getItem('token');
-      const resposta = await axios.get(
-        `http://localhost:8080/api/confeiteiro/profile?email=${encodeURIComponent(emailParaBuscar)}`,
-        {
-          headers: authToken
-            ? { Authorization: `Bearer ${authToken}` }
-            : undefined
+      if (emailParaBuscar) {
+        try {
+          const profileData = await ApiService.get(
+            `/confeiteiro/profile?email=${encodeURIComponent(emailParaBuscar)}`
+          );
+          localStorage.setItem('user', JSON.stringify(profileData));
+          localStorage.setItem('dadosConfeiteiro', JSON.stringify(profileData));
+          this._salvarDadosUsuario(profileData, userType);
+          if (typeof window !== 'undefined') window.dispatchEvent(new Event('localStorageUpdate'));
+          return profileData;
+        } catch (error) {
+          console.warn('Endpoint de perfil do confeiteiro indisponível, usando dados locais do login.', error);
+          return dadosUsuario || { email: emailParaBuscar, tipo: userType };
         }
-      );
-
-      let profileData = resposta.data;
-
-      try {
-        const hasLoja = profileData && (profileData.loja || profileData.nomeLoja || profileData.nomeFantasia || profileData.nomeConfeitaria);
-        if (!hasLoja && profileData && profileData.id && userType === 'confeiteiro') {
-          try {
-            const detalhes = await ConfeiteiroService.getConfeiteiro(profileData.id);
-            const detalhesData = detalhes.data || detalhes;
-            profileData = { ...profileData, ...detalhesData };
-          } catch (err) {
-            console.warn('Não foi possível buscar detalhes do confeiteiro:', err);
-          }
-        }
-      } catch (e) {
-        console.warn('Erro ao verificar/mesclar dados de loja:', e);
       }
 
-      localStorage.setItem('user', JSON.stringify(profileData));
-      
-      if (userType === 'confeiteiro') {
-        localStorage.setItem('dadosConfeiteiro', JSON.stringify(profileData));
-      }
-      
-      this._salvarDadosUsuario(profileData, userType);
-
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('localStorageUpdate'));
-      return profileData;
+      return dadosUsuario || { tipo: userType };
 
     } catch (error) {
       console.warn('Erro ao buscar perfil do usuário:', error);
-      throw error;
+      return { email: email || localStorage.getItem('userEmail') || '', tipo: userType };
     }
   }
 
@@ -219,7 +239,23 @@ class AuthService {
   }
 
   getUserId() {
-    return localStorage.getItem('userId');
+    const idDoStorage = localStorage.getItem('userId');
+    if (idDoStorage && idDoStorage !== 'null' && idDoStorage !== 'undefined') {
+      return idDoStorage;
+    }
+
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (!rawUser) return null;
+
+      const parsed = JSON.parse(rawUser);
+      const base = parsed?.user || parsed?.data || parsed;
+      const id = base?.id || base?.idConfeiteiro || base?.confeiteiroId || base?.loja?.id || base?.confeiteiro?.id || base?.usuario?.id || base?.idUsuario || base?.userId;
+      return id ? String(id) : null;
+    } catch (error) {
+      console.warn('Não foi possível recuperar o ID do usuário do localStorage', error);
+      return null;
+    }
   }
 
   getCurrentUser() {

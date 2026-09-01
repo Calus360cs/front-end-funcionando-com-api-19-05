@@ -1,9 +1,11 @@
 .analyticsContainer {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(245,240,255,0.96));
+  border-radius: 18px;
   padding: 2rem;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 35px rgba(138, 43, 226, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(138, 43, 226, 0.12);
 }
 
 .analyticsHeader {
@@ -11,6 +13,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .analyticsHeader h2 {
@@ -23,13 +27,14 @@
 .periodSelect {
   padding: 0.75rem 1rem;
   border: 2px solid rgba(138, 43, 226, 0.2);
-  border-radius: 8px;
+  border-radius: 999px;
   background: white;
   color: #333;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   outline: none;
+  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.08);
 }
 
 .periodSelect:focus {
@@ -45,11 +50,11 @@
 }
 
 .metricCard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f7f3ff 100%);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(138, 43, 226, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(138, 43, 226, 0.14);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -64,12 +69,13 @@
 .metricIcon {
   width: 60px;
   height: 60px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
 }
 
 .metricContent h3 {
@@ -92,11 +98,11 @@
 }
 
 .issuesSection {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfaff 100%);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(138, 43, 226, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(138, 43, 226, 0.12);
   margin-bottom: 2rem;
 }
 
@@ -188,11 +194,11 @@
 }
 
 .agentSection {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfaff 100%);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(138, 43, 226, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(138, 43, 226, 0.12);
   margin-bottom: 2rem;
 }
 
@@ -269,11 +275,11 @@
 }
 
 .chartSection {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfaff 100%);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(138, 43, 226, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(138, 43, 226, 0.12);
   margin-bottom: 2rem;
 }
 
@@ -326,11 +332,11 @@
 }
 
 .satisfactionSummary {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfaff 100%);
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(138, 43, 226, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(138, 43, 226, 0.12);
 }
 
 .satisfactionSummary h3 {

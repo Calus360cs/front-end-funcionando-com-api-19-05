@@ -7,6 +7,7 @@ import EntregadorGanhos from '../Components/EntregadorGanhos';
 import EntregadorEntregas from '../Components/EntregadorEntregas';
 import EntregadorSuporte from '../Components/EntregadorSuporte';
 import EntregadorPerfil from '../Components/EntregadorPerfil';
+import EntregadorService from '../services/entregadorService';
 
 const EntregadorDashboard = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
@@ -24,16 +25,36 @@ const EntregadorDashboard = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('userToken');
-    const userType = localStorage.getItem('userType');
-    
-    if (!token || userType !== 'entregador') {
-      navigate('/docelivery/entregador/login-entregador');
-    } else {
+    const carregarDadosUsuario = async () => {
+      const token = localStorage.getItem('userToken');
+      const userType = localStorage.getItem('userType');
+      
+      if (!token || userType !== 'entregador') {
+        navigate('/docelivery/entregador/login-entregador');
+        return;
+      }
+
       const nomeEntregador = localStorage.getItem('userName') || localStorage.getItem('nomeEntregador') || 'Entregador';
       const veiculo = localStorage.getItem('userVeiculo') || localStorage.getItem('veiculo') || '';
       setUserData({ nome: nomeEntregador, veiculo });
-    }
+
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      try {
+        const response = await EntregadorService.getEntregador(userId);
+        const perfil = response?.data || response?.entregador || response || {};
+        const nomeAtualizado = perfil.nome || perfil.nomeCompleto || nomeEntregador;
+        const veiculoAtualizado = perfil.veiculo || perfil.tipoVeiculo || veiculo;
+        setUserData({ nome: nomeAtualizado, veiculo: veiculoAtualizado });
+        localStorage.setItem('userName', nomeAtualizado);
+        localStorage.setItem('userVeiculo', veiculoAtualizado);
+      } catch (error) {
+        console.warn('Não foi possível carregar o perfil do entregador:', error);
+      }
+    };
+
+    carregarDadosUsuario();
   }, [navigate]);
 
   const menuItems = [
@@ -182,7 +203,7 @@ const EntregadorDashboard = () => {
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <IoNotifications size={20} />
-              <span className={Styles.notificationBadge}>3</span>
+              <span className={Styles.notificationBadge}>0</span>
             </button>
             
             <div className={Styles.userProfile}>
@@ -212,16 +233,8 @@ const EntregadorDashboard = () => {
           <div className={Styles.notificationsDropdown}>
             <h3>Notificações</h3>
             <div className={Styles.notificationItem}>
-              <span>Nova entrega disponível</span>
-              <small>2 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Entrega concluída com sucesso</span>
-              <small>15 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Pagamento processado</span>
-              <small>1 hora atrás</small>
+              <span>Nenhuma notificação no momento.</span>
+              <small>As novas mensagens aparecerão aqui.</small>
             </div>
           </div>
         </>

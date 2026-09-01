@@ -1,5 +1,8 @@
 // src/components/Header.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeadset } from '@fortawesome/free-solid-svg-icons';
 import Styles from '../Components/Header.module.css';
 import doceLivre from '../assests/img/doce_Livre_3.jpg';
 import icon from '../assests/img/menu_white_36dp.svg';
@@ -7,6 +10,7 @@ import Home from '../paginas/Home';
 import Lojas from '../paginas/Lojas';
 import Footer from './Footer';
 import AuthService from '../services/authService';
+import { createSupportTicket } from '../services/supportContact';
 // Importar imagens das páginas antigas
 import meninaEntregadora from '../assests/img/menina_entregadora1.png';
 import avatar from '../assests/img/avatar.png';
@@ -21,6 +25,10 @@ function Header() {
     const [isAuth, setIsAuth] = useState(false);
     const [userName, setUserName] = useState('');
     const [userType, setUserType] = useState('');
+    const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+    const [supportMessage, setSupportMessage] = useState('');
+    const [isSupportSending, setIsSupportSending] = useState(false);
+    const navigate = useNavigate();
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -42,11 +50,46 @@ function Header() {
         AuthService.logout();
     };
 
+    const handleSupportClick = () => {
+        if (!isAuth) {
+            navigate('/docelivery/cliente/login-cliente');
+            return;
+        }
+
+        setSupportMessage('');
+        setIsSupportModalOpen(true);
+    };
+
+    const handleSupportSubmit = async () => {
+        if (!supportMessage.trim()) {
+            window.alert('Descreva sua dúvida antes de enviar.');
+            return;
+        }
+
+        setIsSupportSending(true);
+        try {
+            await createSupportTicket({
+                userType: (userType || 'cliente').toLowerCase(),
+                userId: localStorage.getItem('userId'),
+                assunto: 'Contato pelo header',
+                mensagem: supportMessage.trim(),
+            });
+            setIsSupportModalOpen(false);
+            setSupportMessage('');
+            window.alert('Mensagem enviada para o suporte com sucesso!');
+        } catch (error) {
+            console.error('Erro ao enviar suporte pelo header:', error);
+            window.alert('Não foi possível enviar o chamado no momento. Tente novamente mais tarde.');
+        } finally {
+            setIsSupportSending(false);
+        }
+    };
+
     const painelLink = () => {
         if (!isAuth) return '/docelivery/cliente/login-cliente';
         switch ((userType || '').toLowerCase()) {
             case 'confeiteiro':
-                return '/docelivery/confeiteiro/Confeiteiro-Dashboard';
+                return '/docelivery/confeiteiro/dashboard';
             case 'entregador':
                 return '/docelivery/entregador/pagina-entregador';
             case 'admin':
@@ -77,8 +120,8 @@ function Header() {
                     <ul>
                         <li className={Styles.nav_item}><a href="/" className={Styles.nav_link}>Home</a></li>
                         <li className={Styles.nav_item}><a href="/docelivery/cliente/Home-Page" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Cliente</a></li>
-                        <li className={Styles.nav_item}><a href="/docelivery/confeiteiro/Confeiteiro-Dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Confeiteiro(a)</a></li>
-                        <li className={Styles.nav_item}><a href="/docelivery/entregador/pagina-entregador" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Entregador</a></li>
+                        <li className={Styles.nav_item}><a href="/docelivery/confeiteiro/dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Confeiteiro(a)</a></li>
+                        <li className={Styles.nav_item}><a href="/docelivery/entregador/dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Entregador</a></li>
                         {/* <li className={Styles.nav_item}><a href="#" className={Styles.nav_link}>Contato</a></li> */}
                     </ul>
                 </div>
@@ -87,13 +130,21 @@ function Header() {
                     {isAuth ? (
                         <>
                             <span style={{ marginRight: '10px' }}>Olá, {userName}</span>
+                            <button className={Styles.supportBtn} onClick={handleSupportClick} title="Abrir suporte">
+                                <FontAwesomeIcon icon={faHeadset} />
+                            </button>
                             <a href={painelLink()} className={Styles.painelBtn}>Painel</a>
                             <button onClick={handleLogout} style={{ marginLeft: '8px' }}>Sair</button>
                         </>
                     ) : (
-                        <button>
-                            <a href="/docelivery/cliente/login-cliente">Login</a>
-                        </button>
+                        <>
+                            <button className={Styles.supportBtn} onClick={handleSupportClick} title="Abrir suporte">
+                                <FontAwesomeIcon icon={faHeadset} />
+                            </button>
+                            <button>
+                                <a href="/docelivery/cliente/login-cliente">Login</a>
+                            </button>
+                        </>
                     )}
                 </div>
 
@@ -108,24 +159,56 @@ function Header() {
                 <ul>
                     <li className={Styles.nav_item}><a href="/" className={Styles.nav_link}>Home</a></li>
                     <li className={Styles.nav_item}><a href="/docelivery/cliente/Home-Page" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Cliente</a></li>
-                    <li className={Styles.nav_item}><a href="/docelivery/confeiteiro/Confeiteiro-Dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Confeiteiro(a)</a></li>
-                    <li className={Styles.nav_item}><a href="/docelivery/entregador/pagina-entregador" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Entregador</a></li>
+                    <li className={Styles.nav_item}><a href="/docelivery/confeiteiro/dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Confeiteiro(a)</a></li>
+                    <li className={Styles.nav_item}><a href="/docelivery/entregador/dashboard" target="_blank" rel="noopener noreferrer" className={Styles.nav_link}>Entregador</a></li>
                 </ul>
                 <div className={Styles.login_button}>
                     {isAuth ? (
                         <>
                             <span style={{ marginRight: '10px' }}>Olá, {userName}</span>
+                            <button className={Styles.supportBtn} onClick={handleSupportClick} title="Abrir suporte">
+                                <FontAwesomeIcon icon={faHeadset} />
+                            </button>
                             <a href={painelLink()} className={Styles.painelBtn}>Painel</a>
                             <button onClick={handleLogout} style={{ marginLeft: '8px' }}>Sair</button>
                         </>
                     ) : (
-                        <button>
-                            <a href="/docelivery/cliente/login-cliente">Login</a>
-                        </button>
+                        <>
+                            <button className={Styles.supportBtn} onClick={handleSupportClick} title="Abrir suporte">
+                                <FontAwesomeIcon icon={faHeadset} />
+                            </button>
+                            <button>
+                                <a href="/docelivery/cliente/login-cliente">Login</a>
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
         </header>
+
+        {isSupportModalOpen && (
+            <div className={Styles.modalOverlay} onClick={() => setIsSupportModalOpen(false)}>
+                <div className={Styles.supportModal} onClick={(e) => e.stopPropagation()}>
+                    <div className={Styles.modalHeader}>
+                        <h3 className={Styles.modalTitle}>Fale com o suporte</h3>
+                        <button className={Styles.closeBtn} onClick={() => setIsSupportModalOpen(false)} aria-label="Fechar suporte">×</button>
+                    </div>
+                    <p className={Styles.modalText}>Descreva o problema ou dúvida que você está enfrentando.</p>
+                    <textarea
+                        className={Styles.supportTextarea}
+                        value={supportMessage}
+                        onChange={(e) => setSupportMessage(e.target.value)}
+                        placeholder="Digite sua mensagem..."
+                    />
+                    <div className={Styles.modalActions}>
+                        <button className={Styles.secondaryBtn} onClick={() => setIsSupportModalOpen(false)}>Cancelar</button>
+                        <button className={Styles.primaryBtn} onClick={handleSupportSubmit} disabled={isSupportSending}>
+                            {isSupportSending ? 'Enviando...' : 'Enviar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         <Home />
         <Lojas />

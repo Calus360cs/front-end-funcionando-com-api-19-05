@@ -1,89 +1,233 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { IoSendOutline, IoPersonOutline, IoTimeOutline, IoCheckmarkDoneOutline } from 'react-icons/io5';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IoSendOutline, IoPersonOutline, IoCheckmarkDoneOutline } from 'react-icons/io5';
 import Styles from './AdminChat.module.css';
+import api from '../services/api';
 
-const AdminChat = () => {
+const normalizeMessages = (payload) => {
+  if (Array.isArray(payload)) return payload;
+
+  if (!payload || typeof payload !== 'object') return [];
+
+  if (Array.isArray(payload.messages)) return payload.messages;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.conversation?.messages)) return payload.conversation.messages;
+
+  return [];
+};
+
+const normalizeChatList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  if (Array.isArray(payload.chats)) return payload.chats;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.conversations)) return payload.conversations;
+  return [];
+};
+
+const getChatDisplayName = (chat) => {
+  const nome = chat?.user || chat?.nomeUsuario || chat?.nome || chat?.cliente?.nome || chat?.usuario?.nome || '';
+  return nome || '—';
+};
+
+const getChatUserType = (chat) => {
+  const tipo = String(chat?.userType || chat?.tipoUsuario || chat?.role || chat?.tipo || '').toLowerCase();
+  if (tipo === 'cliente') return 'Cliente';
+  if (tipo === 'entregador') return 'Entregador';
+  if (tipo === 'admin') return 'Administrador';
+  if (tipo === 'confeiteiro') return 'Confeiteiro';
+  return '';
+};
+
+const getChatStatus = (chat) => {
+  const onlineFlag = chat?.isOnline ?? chat?.online ?? chat?.connected ?? chat?.statusOnline;
+  if (typeof onlineFlag === 'boolean') return onlineFlag ? 'online' : 'offline';
+
+  const status = String(chat?.status || chat?.state || chat?.presence || '').toLowerCase();
+  if (['online', 'disponivel', 'ativo', 'connected', 'available', 'open'].includes(status)) return 'online';
+  if (['offline', 'indisponivel', 'inativo', 'disconnected', 'closed', 'busy'].includes(status)) return 'offline';
+  return 'offline';
+};
+
+const getActivityText = (chat) => {
+  const rawValue = chat?.lastActivity || chat?.lastSeen || chat?.updatedAt || chat?.timestamp || chat?.lastMessageTime;
+  if (!rawValue) return '';
+
+  const parsedDate = new Date(rawValue);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
+  const diffMinutes = Math.floor((Date.now() - parsedDate.getTime()) / 60000);
+  if (diffMinutes < 1) return 'agora';
+  if (diffMinutes < 60) return `há ${diffMinutes} min`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `há ${diffHours}h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `há ${diffDays}d`;
+};
+
+const AdminChat = ({ ticketId }) => {
   const [activeChats, setActiveChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
-  const [onlineUsers, setOnlineUsers] = useState(12);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
+  const [ticket, setTicket] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const mockChats = [
-    {
-      id: 1,
-      user: 'Maria Silva',
-      userType: 'cliente',
-      status: 'online',
-      lastMessage: 'Meu pedido ainda não chegou',
-      timestamp: new Date(Date.now() - 300000),
-      unread: 2,
-      priority: 'high',
-      messages: [
-        { id: 1, sender: 'user', text: 'Olá, preciso de ajuda', time: new Date(Date.now() - 600000) },
-        { id: 2, sender: 'admin', text: 'Olá Maria! Como posso ajudá-la?', time: new Date(Date.now() - 580000) },
-        { id: 3, sender: 'user', text: 'Meu pedido ainda não chegou', time: new Date(Date.now() - 300000) }
-      ]
-    },
-    {
-      id: 2,
-      user: 'João Doces',
-      userType: 'confeiteiro',
-      status: 'online',
-      lastMessage: 'Como altero meu cardápio?',
-      timestamp: new Date(Date.now() - 900000),
-      unread: 1,
-      priority: 'medium',
-      messages: [
-        { id: 1, sender: 'user', text: 'Como altero meu cardápio?', time: new Date(Date.now() - 900000) }
-      ]
-    }
-  ];
-
   useEffect(() => {
-    setActiveChats(mockChats);
+    if (!ticketId) {
+      setTicket(null);
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    const carregarDetalhesChat = async () => {
+      try {
+        const response = await api.get(`/api/suporte/tickets/${ticketId}`);
+        if (isMounted) {
+          setTicket(response?.data || response);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar detalhes do chat:', error);
+      }
+    };
+
+    carregarDetalhesChat();
+    const interval = window.setInterval(carregarDetalhesChat, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [ticketId]);
+
+  const carregarDetalhesDoChat = useCallback(async (chatId) => {
+    if (!chatId) return null;
+
+    try {
+      const response = await api.get(`/admin/chats/${chatId}`);
+      return {
+        ...(response || {}),
+        id: chatId,
+        messages: normalizeMessages(response?.messages || response?.data || response?.conversation || response),
+      };
+    } catch (err) {
+      console.error('Erro ao buscar detalhes do chat:', err);
+      return null;
+    }
   }, []);
 
+  const buscarChats = useCallback(async (isPolling = false) => {
+    try {
+      if (!isPolling) setLoading(true);
+      const response = await api.get('/admin/chats');
+      const chatsApi = normalizeChatList(response);
+      const onlineCount = response?.onlineUsersCount ?? response?.onlineUsers ?? response?.totalOnline ?? chatsApi.filter((chat) => getChatStatus(chat) === 'online').length;
+      
+      if (response || Array.isArray(chatsApi)) {
+        setActiveChats(chatsApi);
+        setOnlineUsers(onlineCount || 0);
+
+        if (selectedChat) {
+          const chatAtualizado = chatsApi.find((c) => String(c.id) === String(selectedChat.id));
+          if (chatAtualizado) {
+            const detalhes = await carregarDetalhesDoChat(chatAtualizado.id);
+            setSelectedChat((prev) => {
+              if (!prev || String(prev.id) !== String(chatAtualizado.id)) return prev;
+              return {
+                ...prev,
+                ...chatAtualizado,
+                ...(detalhes || {}),
+                messages: detalhes?.messages?.length ? detalhes.messages : prev.messages || chatAtualizado.messages || [],
+              };
+            });
+          }
+        }
+      }
+      setErro(null);
+    } catch (err) {
+      console.error('Erro ao buscar as conversas da API:', err);
+      setErro('Não foi possível se comunicar com o servidor do chat.');
+    } finally {
+      if (!isPolling) setLoading(false);
+    }
+  }, [carregarDetalhesDoChat, selectedChat]);
+
+  // Carregamento inicial e loop do chat (Polling) para atualização sem usar websockets legados
   useEffect(() => {
+    buscarChats();
+    
+    const interval = setInterval(() => {
+      buscarChats(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [buscarChats]);
+
+  useEffect(() => {
+    if (selectedChat?.id) {
+      const carregar = async () => {
+        const detalhes = await carregarDetalhesDoChat(selectedChat.id);
+        if (detalhes) {
+          setSelectedChat((prev) => prev && String(prev.id) === String(selectedChat.id)
+            ? { ...prev, ...detalhes, messages: detalhes.messages?.length ? detalhes.messages : prev.messages || [] }
+            : prev);
+        }
+      };
+
+      carregar();
+    }
     scrollToBottom();
-  }, [selectedChat]);
+  }, [selectedChat?.id, carregarDetalhesDoChat]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const sendMessage = () => {
-    if (!message.trim() || !selectedChat) return;
+  const handleSelectChat = async (chat) => {
+    setSelectedChat(chat);
+    if (!chat?.id) return;
 
-    const newMessage = {
-      id: Date.now(),
-      sender: 'admin',
-      text: message,
-      time: new Date()
-    };
-
-    setActiveChats(prev => prev.map(chat => 
-      chat.id === selectedChat.id 
-        ? { ...chat, messages: [...chat.messages, newMessage], lastMessage: message, timestamp: new Date() }
-        : chat
-    ));
-
-    setSelectedChat(prev => ({
-      ...prev,
-      messages: [...prev.messages, newMessage]
-    }));
-
-    setMessage('');
-    scrollToBottom();
+    const detalhes = await carregarDetalhesDoChat(chat.id);
+    if (detalhes) {
+      setSelectedChat((prev) => prev && String(prev.id) === String(chat.id)
+        ? { ...prev, ...chat, ...detalhes, messages: detalhes.messages?.length ? detalhes.messages : prev.messages || [] }
+        : prev);
+    }
   };
 
-  const quickReplies = [
-    'Obrigado por entrar em contato!',
-    'Vou verificar isso para você.',
-    'Seu pedido está sendo preparado.',
-    'Posso ajudá-lo com mais alguma coisa?',
-    'Problema resolvido!'
-  ];
+  const sendMessage = async () => {
+    if (!message.trim() || !selectedChat) return;
+
+    try {
+      const payload = {
+        sender: 'admin',
+        text: message.trim()
+      };
+
+      const resposta = await api.post(`/admin/chats/${selectedChat.id}/messages`, payload);
+      const mensagemCriada = resposta?.message || resposta?.data || resposta;
+
+      if (mensagemCriada) {
+        setSelectedChat(prev => ({
+          ...prev,
+          messages: [...(prev.messages || []), mensagemCriada],
+          lastMessage: mensagemCriada.text || mensagemCriada.message || message.trim(),
+          timestamp: mensagemCriada.time || mensagemCriada.createdAt || new Date().toISOString()
+        }));
+      }
+      
+      setMessage('');
+      scrollToBottom();
+      buscarChats(true);
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+      setErro('Não foi possível enviar a mensagem para a API.');
+    }
+  };
 
   return (
     <div className={Styles.chatContainer}>
@@ -96,38 +240,50 @@ const AdminChat = () => {
           </div>
         </div>
 
-        <div className={Styles.chatList}>
-          {activeChats.map(chat => (
-            <div 
-              key={chat.id}
-              className={`${Styles.chatItem} ${selectedChat?.id === chat.id ? Styles.active : ''}`}
-              onClick={() => setSelectedChat(chat)}
-            >
-              <div className={Styles.chatAvatar}>
-                <IoPersonOutline size={20} />
-                <span className={`${Styles.statusDot} ${Styles[chat.status]}`}></span>
-              </div>
-              <div className={Styles.chatInfo}>
-                <div className={Styles.chatName}>
-                  {chat.user}
-                  <span className={Styles.userType}>
-                    {chat.userType === 'cliente' ? 'C' : 'F'}
-                  </span>
+        {erro && (
+          <div style={{ background: '#fff3cd', border: '1px solid #ffc107', padding: '6px 12px', margin: '8px 16px', borderRadius: 6, fontSize: '0.8rem', color: '#856404' }}>
+            ⚠️ Problema de conexão.
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#8a2be2' }}>Carregando chats...</div>
+        ) : (
+          <div className={Styles.chatList}>
+            {activeChats.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#666', padding: '2rem', fontSize: '0.9rem' }}>Nenhum atendimento ativo.</div>
+            ) : activeChats.map(chat => (
+              <div 
+                key={chat.id}
+                className={`${Styles.chatItem} ${selectedChat?.id === chat.id ? Styles.active : ''}`}
+                onClick={() => handleSelectChat(chat)}
+              >
+                <div className={Styles.chatAvatar}>
+                  <IoPersonOutline size={20} />
+                  <span className={`${Styles.statusDot} ${Styles[getChatStatus(chat)]}`}></span>
                 </div>
-                <div className={Styles.lastMessage}>{chat.lastMessage}</div>
-                <div className={Styles.chatTime}>
-                  {chat.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                <div className={Styles.chatInfo}>
+                  <div className={Styles.chatName}>
+                    {getChatDisplayName(chat)}
+                    <span className={Styles.userType}>
+                      {getChatUserType(chat).charAt(0)}
+                    </span>
+                  </div>
+                  <div className={Styles.lastMessage}>{chat.lastMessage || chat.ultimaMensagem || ''}</div>
+                  <div className={Styles.chatTime}>
+                    {chat.timestamp ? new Date(chat.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </div>
                 </div>
+                {(chat.unread || 0) > 0 && (
+                  <div className={Styles.unreadBadge}>{chat.unread}</div>
+                )}
+                {(chat.priority === 'high' || chat.prioridade === 'alta') && (
+                  <div className={Styles.priorityBadge}>!</div>
+                )}
               </div>
-              {chat.unread > 0 && (
-                <div className={Styles.unreadBadge}>{chat.unread}</div>
-              )}
-              {chat.priority === 'high' && (
-                <div className={Styles.priorityBadge}>!</div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={Styles.chatMain}>
@@ -137,41 +293,40 @@ const AdminChat = () => {
               <div className={Styles.chatUserInfo}>
                 <IoPersonOutline size={24} />
                 <div>
-                  <h4>{selectedChat.user}</h4>
-                  <span>{selectedChat.userType === 'cliente' ? 'Cliente' : 'Confeiteiro'}</span>
+                  {ticket && (
+                    <div style={{ fontSize: '0.75rem', color: '#6b21a8', marginBottom: '2px', fontWeight: 600 }}>
+                      Ticket #{ticket.id || ticketId}
+                      {ticket.assunto ? ` · ${ticket.assunto}` : ''}
+                    </div>
+                  )}
+                  <h4>{getChatDisplayName(selectedChat)}</h4>
+                  <span>{getChatUserType(selectedChat)}</span>
+                  <div style={{ fontSize: '0.72rem', color: getChatStatus(selectedChat) === 'online' ? '#2e7d32' : '#666', marginTop: '2px' }}>
+                    {selectedChat?.isTyping || selectedChat?.typing ? 'Digitando...' : `${getChatStatus(selectedChat) === 'online' ? 'Online' : 'Offline'}${getActivityText(selectedChat) ? ` · ${getActivityText(selectedChat)}` : ''}`}
+                  </div>
                 </div>
-              </div>
-              <div className={Styles.chatActions}>
-                <button className={Styles.actionBtn}>Histórico</button>
-                <button className={Styles.actionBtn}>Transferir</button>
               </div>
             </div>
 
             <div className={Styles.messagesContainer}>
-              {selectedChat.messages.map(msg => (
-                <div key={msg.id} className={`${Styles.message} ${Styles[msg.sender]}`}>
-                  <div className={Styles.messageContent}>
-                    <p>{msg.text}</p>
-                    <span className={Styles.messageTime}>
-                      {msg.time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      {msg.sender === 'admin' && <IoCheckmarkDoneOutline size={12} />}
-                    </span>
+              {(selectedChat.messages || []).length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>Nenhuma mensagem recebida ainda.</div>
+              ) : (selectedChat.messages || []).map(msg => {
+                const texto = msg.text || msg.texto || '';
+                const horario = msg.time || msg.dataHora;
+                return (
+                  <div key={msg.id || `${texto}-${horario}`} className={`${Styles.message} ${Styles[msg.sender || 'user']}`}>
+                    <div className={Styles.messageContent}>
+                      <p>{texto}</p>
+                      <span className={Styles.messageTime}>
+                        {horario ? new Date(horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                        {msg.sender === 'admin' && <IoCheckmarkDoneOutline size={12} />}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
-            </div>
-
-            <div className={Styles.quickReplies}>
-              {quickReplies.map((reply, index) => (
-                <button 
-                  key={index}
-                  className={Styles.quickReply}
-                  onClick={() => setMessage(reply)}
-                >
-                  {reply}
-                </button>
-              ))}
             </div>
 
             <div className={Styles.messageInput}>

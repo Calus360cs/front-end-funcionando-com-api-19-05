@@ -11,7 +11,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const PerfilLoja = () => {
     const { dadosLoja, atualizarDadosLoja, atualizarHorarioFuncionamento } = useLoja();
     
-    // eslint-disable-next-line no-unused-vars
     const [lojaIdReal, setLojaIdReal] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -210,8 +209,19 @@ const PerfilLoja = () => {
         }
 
         try {
-            // O interceptor em api.js já cuida do Content-Type para FormData.
-            await api.put(`/confeiteiro/loja/atualizar/${userId}`, payload);
+            let idParaAtualizar = lojaIdReal;
+
+            if (!idParaAtualizar) {
+                const usuarioAtual = await confeiteiroService.getConfeiteiro(userId);
+                idParaAtualizar = usuarioAtual?.loja?.id || null;
+                if (idParaAtualizar) setLojaIdReal(idParaAtualizar);
+            }
+
+            if (!idParaAtualizar) {
+                alert('ID da loja não encontrado. Cadastre os dados iniciais da loja e tente novamente.');
+                return;
+            }
+            await api.put(`/confeiteiro/loja/atualizar/${idParaAtualizar}`, payload);
 
             alert("Perfil da loja atualizado com sucesso!");
 

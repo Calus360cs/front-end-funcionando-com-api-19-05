@@ -46,13 +46,20 @@ class UserService {
     return await ApiService.delete(`/user/favorites/${itemId}?tipo=${tipo}`);
   }
 
-  // Obter todos os usuários (admin)
-  async getAllUsers(filters = {}) {
-    const params = new URLSearchParams(filters).toString();
-    return await ApiService.get(`/admin/users?${params}`);
+  // --- MÉTODOS DO PAINEL ADMINISTRATIVO (Alinhados com o AdminController.java) ---
+
+  // 🚀 Busca os clientes reais filtrados no banco
+  async getClientes() {
+    return await ApiService.get('/cliente');
   }
 
-  // Suspender/ativar usuário (admin)
+  // 🚀 Busca os confeiteiros reais filtrados no banco
+  async getConfeiteiros() {
+    return await ApiService.get('/confeiteiro');
+  }
+
+  // Suspender/ativar usuário (admin) 
+  // Nota: Caso queira usar essa rota no futuro, lembre-se de mapear o @PutMapping correspondente no backend
   async toggleUserStatus(userId, status) {
     return await ApiService.put(`/admin/users/${userId}/status`, { status });
   }

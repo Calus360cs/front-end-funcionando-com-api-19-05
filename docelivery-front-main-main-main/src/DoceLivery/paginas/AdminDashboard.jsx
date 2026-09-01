@@ -9,14 +9,17 @@ import AdminOrders from '../Components/AdminOrders';
 import AdminReports from '../Components/AdminReports';
 import AdminSupport from '../Components/AdminSupport';
 import AdminChat from '../Components/AdminChat';
+import AdminEntregadores from '../Components/AdminEntregadores';
+import ApiService from '../services/api';
 import AdminAnalytics from '../Components/AdminAnalytics';
 
 const AdminDashboard = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notificacoesReais, setNotificacoesReais] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [adminData, setAdminData] = useState({ nome: 'Administrador' });
-  const [adminNivel, setAdminNivel] = useState(localStorage.getItem('adminNivel') || 'SUPORTE');
+  const [adminNivel] = useState(localStorage.getItem('adminNivel') || 'MASTER');
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -26,17 +29,31 @@ const AdminDashboard = () => {
     navigate('/');
   };
 
-  useEffect(() => {
+useEffect(() => {
     const token = localStorage.getItem('userToken');
     const userType = localStorage.getItem('userType');
     
-    if (!token || userType !== 'admin') {
+    // 🟢 Agora aceita tanto 'admin' quanto 'MASTER' (que é o que o Java responde!)
+    if (!token || (userType !== 'admin' && userType !== 'MASTER')) {
       navigate('/docelivery/admin/login');
     } else {
       const adminName = localStorage.getItem('adminName') || 'Administrador';
       setAdminData({ nome: adminName });
     }
   }, [navigate]);
+
+  // 🚀 Adicione esse useEffect dentro do seu AdminDashboard para carregar as notificações do Banco
+  useEffect(() => {
+    const carregarNotificacoesDoBanco = async () => {
+      try {
+        const res = await ApiService.get('/admin/notificacoes');
+        setNotificacoesReais(Array.isArray(res) ? res : []);
+      } catch (err) {
+        console.error("Erro ao sincronizar sininho do admin", err);
+      }
+    };
+    if (showNotifications) carregarNotificacoesDoBanco();
+  }, [showNotifications]);
 
   const menuItems = [
     { 
@@ -82,6 +99,13 @@ const AdminDashboard = () => {
       descricao: 'Gerenciar tickets e atendimento'
     },
     { 
+      id: 'entregadores', 
+      nome: 'Entregadores', 
+      icone: <IoReceipt size={20} />,
+      titulo: 'Gestão de Entregadores',
+      descricao: 'Visualizar entregadores e seus dados'
+    },
+    { 
       id: 'chat', 
       nome: 'Chat ao Vivo', 
       icone: <IoChatbubbleEllipsesOutline size={20} />,
@@ -115,6 +139,8 @@ const AdminDashboard = () => {
         return <AdminReports adminNivel={adminNivel} />;
       case 'support':
         return <AdminSupport adminNivel={adminNivel} />;
+      case 'entregadores':
+        return <AdminEntregadores adminNivel={adminNivel} />;
       case 'chat':
         return <AdminChat adminNivel={adminNivel} />;
       case 'analytics':
@@ -177,7 +203,7 @@ const AdminDashboard = () => {
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <IoNotifications size={20} />
-              <span className={Styles.notificationBadge}>5</span>
+              {notificacoesReais.length > 0 && <span className={Styles.notificationBadge}>{notificacoesReais.length}</span>}
             </button>
             
             <div className={Styles.userProfile}>
@@ -207,28 +233,17 @@ const AdminDashboard = () => {
       {showNotifications && (
         <>
           <div className={Styles.notificationsOverlay} onClick={() => setShowNotifications(false)} />
+          
           <div className={Styles.notificationsDropdown}>
-            <h3>Notificações</h3>
-            <div className={Styles.notificationItem}>
-              <span>Novo usuário cadastrado</span>
-              <small>5 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Pedido #1234 aguardando aprovação</span>
-              <small>10 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Nova loja solicitou cadastro</span>
-              <small>30 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Ticket de suporte aberto</span>
-              <small>1 hora atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Relatório mensal disponível</span>
-              <small>2 horas atrás</small>
-            </div>
+            <h3>Notificações do Sistema</h3>
+            {notificacoesReais.length === 0 ? (
+              <div style={{ padding: '10px', color: '#666', fontSize: '0.85rem' }}>Nenhuma notificação nova.</div>
+            ) : notificacoesReais.map((notif) => (
+              <div key={notif.id} className={Styles.notificationItem}>
+                <span>{notif.mensagem || notif.titulo || "Alerta no Sistema"}</span>
+                <small>{notif.dataCriacao ? new Date(notif.dataCriacao).toLocaleDateString('pt-BR') : 'Agora'}</small>
+              </div>
+            ))}
           </div>
         </>
       )}

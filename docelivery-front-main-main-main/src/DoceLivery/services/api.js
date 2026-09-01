@@ -38,13 +38,20 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      if (!error.config.url.includes('/auth/login')) {
-        console.warn(`Acesso negado (${error.response.status}). Verifique suas permissões ou refaça o login.`);
-        localStorage.clear();
-        window.location.href = '/docelivery/cliente/login-cliente'; 
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+    const hasAuthToken = !!(localStorage.getItem('userToken') || localStorage.getItem('token'));
+    const isAuthRequest = /\/auth\//i.test(url) || /\/login/i.test(url) || /\/cadastro/i.test(url);
+
+    if (status === 401 || status === 403) {
+      if (!isAuthRequest && !hasAuthToken) {
+        console.warn(`Acesso negado (${status}). Redirecionando para o login.`);
+        window.location.href = '/docelivery/confeiteiro/login-confeiteiro';
+      } else {
+        console.warn(`Acesso negado (${status}). Mantendo a sessão atual para evitar logout inesperado.`);
       }
     }
+
     console.error('Erro na API:', error.response?.data || error.message);
     return Promise.reject(error);
   }

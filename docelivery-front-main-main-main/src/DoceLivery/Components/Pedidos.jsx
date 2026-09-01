@@ -11,6 +11,7 @@ const abas = [
     { id: 'NOVO', nome: 'Novos' },
     { id: 'PREPARANDO', nome: 'Em Preparação' },
     { id: 'PRONTO', nome: 'Prontos' },
+    { id: 'SAIU_PARA_ENTREGA', nome: 'Em Entrega' },
     { id: 'ENTREGUE', nome: 'Histórico' },
 ];
 
@@ -20,11 +21,20 @@ const Pedidos = () => {
     const [filtro, setFiltro] = useState('NOVO');
     const confeiteiroId = AuthService.getUserId();
 
-    const carregarPedidos = useCallback(async () => {
+    const carregarPedidos = useCallback(async (abaAtiva = 'NOVO') => {
         try {
             setLoading(true);
-            const dados = await OrderService.getFilaTrabalho(confeiteiroId);
-            setPedidos(dados || []);
+            const STATUS_HISTORICO = ['ENTREGUE', 'CONCLUIDO', 'CANCELADO'];
+            if (STATUS_HISTORICO.includes(abaAtiva)) {
+                const dados = await OrderService.getTodosPedidos(confeiteiroId);
+                const finalizados = (dados || []).filter(p =>
+                    STATUS_HISTORICO.includes(p.status?.toUpperCase())
+                );
+                setPedidos(finalizados);
+            } else {
+                const dados = await OrderService.getFilaTrabalho(confeiteiroId);
+                setPedidos(dados || []);
+            }
         } catch (error) {
             console.error('Erro ao carregar pedidos:', error);
         } finally {
@@ -33,8 +43,8 @@ const Pedidos = () => {
     }, [confeiteiroId]);
 
     useEffect(() => {
-        carregarPedidos();
-    }, [carregarPedidos]);
+        carregarPedidos(filtro);
+    }, [carregarPedidos, filtro]);
 
     // 🔴 ESCUTADOR WEBSOCKET EM TEMPO REAL INTEGRADO ÀS ABAS
     useEffect(() => {
@@ -44,7 +54,8 @@ const Pedidos = () => {
         const stompClient = Stomp.over(socket);
         stompClient.debug = null; // Limpa o console de logs poluídos do Stomp
 
-        stompClient.connect({}, () => {
+        const token = localStorage.getItem('userToken') || localStorage.getItem('token') || '';
+        stompClient.connect({ Authorization: `Bearer ${token}` }, () => {
             console.log("✅ WebSocket conectado com sucesso no painel de produção!");
 
             // Se inscreve na fila mestre enviada pelo backend Java
@@ -88,10 +99,22 @@ const Pedidos = () => {
     const handleAtualizarStatus = async (id, novoStatus) => {
         try {
             await OrderService.atualizarStatus(id, novoStatus);
-            carregarPedidos(); // Força a atualização dos contadores das abas
+            carregarPedidos(filtro);
+            window.dispatchEvent(new Event('pedidoAtualizado'));
         } catch (error) {
             console.error('Erro ao atualizar status:', error);
             alert('Erro ao atualizar status.');
+        }
+    };
+
+    const handleDespachar = async (id) => {
+        try {
+            await OrderService.despacharPedido(id);
+            carregarPedidos(filtro);
+            window.dispatchEvent(new Event('pedidoAtualizado'));
+        } catch (error) {
+            console.error('Erro ao despachar pedido:', error);
+            alert('Erro ao despachar pedido.');
         }
     };
 
@@ -121,7 +144,7 @@ const Pedidos = () => {
                     return (
                         <button
                             key={aba.id}
-                            onClick={() => setFiltro(aba.id)}
+                            onClick={() => { setFiltro(aba.id); carregarPedidos(aba.id); }}
                             style={{
                                 padding: '10px 15px',
                                 marginRight: '10px',
@@ -149,6 +172,7 @@ const Pedidos = () => {
                                 key={pedido.id}
                                 pedido={pedido}
                                 onAtualizarStatus={handleAtualizarStatus}
+                                onDespachar={handleDespachar}
                             />
                         ))
                     ) : (

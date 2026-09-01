@@ -191,6 +191,16 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.map_section {
+  margin-bottom: 2rem;
+}
+
+.map_section h4 {
+  color: #333;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+}
+
 @media (max-width: 768px) {
   .tracking_container {
     margin: 1rem;

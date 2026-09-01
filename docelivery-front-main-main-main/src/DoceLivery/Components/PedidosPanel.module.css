@@ -1,0 +1,492 @@
+.painel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 420px;
+  background: #fff;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.4s ease-in-out;
+}
+
+.painel.open {
+  transform: translateX(0);
+}
+
+/* ── HEADER ── */
+.painelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+  flex-shrink: 0;
+}
+
+.painelTitulo {
+  margin: 0;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.btnIcone {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnIcone:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── FILTROS ── */
+.filtros {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.filtroBotao {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtroBotao:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.filtroAtivo {
+  background: white;
+  color: #8a2be2;
+  border-color: white;
+}
+
+.filtroBadge {
+  background: rgba(138, 43, 226, 0.2);
+  color: inherit;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+}
+
+.filtroAtivo .filtroBadge {
+  background: rgba(138, 43, 226, 0.15);
+}
+
+/* ── CONTEÚDO SCROLLÁVEL ── */
+.conteudo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 14px;
+  background: #f5f5f5;
+}
+
+.msg {
+  text-align: center;
+  color: #888;
+  padding: 30px;
+  font-size: 0.9rem;
+}
+
+.vazio {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 14px;
+}
+
+.vazio span {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.vazio p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* ── CARD ── */
+.card {
+  background: white;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.cardCancelado {
+  opacity: 0.7;
+}
+
+.cardTopo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.cardTopoEsq {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pedidoNum {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.88rem;
+}
+
+.lojaNome {
+  color: #8a2be2;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pedidoData {
+  color: #aaa;
+  font-size: 0.72rem;
+}
+
+.cardTopoDireita {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.totalValor {
+  font-weight: 700;
+  color: #ff69b4;
+  font-size: 0.92rem;
+}
+
+/* ── PROGRESSO ── */
+.progressoBar {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  overflow-x: auto;
+}
+
+.progressoPasso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.progressoIcone {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.progressoAtivo .progressoIcone {
+  background: #8a2be2;
+  color: white;
+}
+
+.progressoAtual .progressoIcone {
+  background: #ff69b4;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.25);
+}
+
+.progressoLabel {
+  font-size: 0.6rem;
+  color: #aaa;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progressoAtivo .progressoLabel {
+  color: #8a2be2;
+  font-weight: 600;
+}
+
+.progressoAtual .progressoLabel {
+  color: #ff69b4;
+  font-weight: 700;
+}
+
+.progressoLinha {
+  flex: 1;
+  height: 2px;
+  background: #e0e0e0;
+  min-width: 14px;
+  margin-bottom: 16px;
+  transition: background 0.3s;
+}
+
+.progressoLinhaAtiva {
+  background: #8a2be2;
+}
+
+/* ── DETALHES ── */
+.detalhes {
+  padding: 12px 16px 16px;
+  border-top: 1px dashed #eee;
+}
+
+.itensList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.itensList strong {
+  font-size: 0.8rem;
+  color: #555;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.itemLinha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemFoto {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.itemNome {
+  flex: 1;
+  font-size: 0.82rem;
+  color: #444;
+}
+
+.itemPreco {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ff69b4;
+  white-space: nowrap;
+}
+
+.btnAvaliar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btnAvaliar:hover {
+  transform: translateY(-1px);
+}
+
+.jaAvaliado {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* ── MODAL AVALIAÇÃO ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalAvaliacao {
+  background: white;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.btnFechar {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.abas {
+  display: flex;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.aba {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #999;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.abaAtiva {
+  color: #8a2be2;
+  border-bottom-color: #8a2be2;
+}
+
+.abaConteudo {
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.avaliacaoNome {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.95rem;
+  margin: 0 0 4px;
+}
+
+.comentario {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: none;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.comentario:focus {
+  outline: none;
+  border-color: #ff69b4;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btnCancelar {
+  flex: 1;
+  padding: 9px;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnEnviar {
+  flex: 2;
+  padding: 9px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnEnviar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .painel { width: 100%; }
+  .progressoLabel { display: none; }
+}

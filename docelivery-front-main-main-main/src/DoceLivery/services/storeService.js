@@ -1,7 +1,9 @@
 import ApiService from './api';
 
 class StoreService {
-  // Obter todas as lojas
+  // --- ROTAS DO FLUXO DE CLIENTES / CONFEITEIROS ---
+
+  // Obter todas as lojas (Fluxo público do app)
   async getStores() {
     return await ApiService.get('/stores');
   }
@@ -49,6 +51,18 @@ class StoreService {
   // Adicionar avaliação
   async addReview(storeId, avaliacao) {
     return await ApiService.post(`/stores/${storeId}/reviews`, avaliacao);
+  }
+
+  // --- MÉTODOS DO PAINEL ADMINISTRATIVO (Alinhados com o AdminController.java) ---
+
+  // 🚀 Busca todas as lojas do banco de dados especificamente para o painel Admin
+  async getAdminStores() {
+    return await ApiService.get('/admin/stores');
+  }
+
+  // 🚀 Altera o status de uma confeitaria (Ativar/Suspender) diretamente pelo Admin
+  async toggleStoreStatus(storeId, status) {
+    return await ApiService.patch(`/admin/lojas/${storeId}/status`, { status });
   }
 }
 

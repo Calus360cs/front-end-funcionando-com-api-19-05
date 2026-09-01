@@ -494,6 +494,36 @@
     padding: 24px;
 }
 
+.infoBanner {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: #fdf4ff;
+    color: #8a2be2;
+    font-size: 0.9rem;
+    border: 1px solid #f1d7ff;
+}
+
+.cancelarBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: auto;
+}
+
+.cancelarBtn:hover {
+    background: #fecaca;
+}
+
 .formGroup {
     margin-bottom: 20px;
 }
@@ -507,13 +537,16 @@
 }
 
 .formGroup input,
-.formGroup select {
+.formGroup select,
+.formGroup textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid #D1D5DB;
     border-radius: 8px;
     font-size: 14px;
     box-sizing: border-box;
+    font-family: inherit;
+    resize: vertical;
 }
 
 .formRow {

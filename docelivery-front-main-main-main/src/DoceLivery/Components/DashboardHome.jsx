@@ -5,17 +5,36 @@ import { useLoja } from '../context/LojaContext';
 import OrderService from '../services/orderService';
 import AuthService from '../services/authService';
 import ConfeiteiroService from '../services/confeiteiroService'; 
+import { useDashboard } from '../context/DashboardContext';
 import SalesChart from './SalesChart';
 import VendasTempoReal from '../Components/VendasTempoReal';
 
+const toNumber = (value) => {
+    const number = Number.parseFloat(value ?? 0);
+    return Number.isFinite(number) ? number : 0;
+};
+
+const normalizarLista = (resposta) => {
+    if (Array.isArray(resposta)) return resposta;
+    if (Array.isArray(resposta?.content)) return resposta.content;
+    if (Array.isArray(resposta?.data)) return resposta.data;
+    return [];
+};
+
+const pedidoAgendado = (pedido) => {
+    const status = (pedido?.status || '').toString().toUpperCase();
+    return pedido?.agendado === true || status === 'AGENDADO' || Boolean(pedido?.dataEntregaAgendada);
+};
 
 const DashboardHome = ({ editMode, userData }) => {
     const { dadosLoja, atualizarDadosLoja } = useLoja();
+    const { dashboardData, carregarDadosFinanceiros } = useDashboard();
     const [editingField, setEditingField] = useState(null);
     
     const [pedidosBanco, setPedidosBanco] = useState([]);
     const [loading, setLoading] = useState(true);
     const [confeiteiroId, setConfeiteiroId] = useState(null);
+    const [atualizacaoPedidos, setAtualizacaoPedidos] = useState(0);
 
     const requisicaoFeita = useRef(false);
 
@@ -30,7 +49,24 @@ const DashboardHome = ({ editMode, userData }) => {
     });
 
     useEffect(() => {
-        const id = AuthService.getUserId();
+        const resolveConfeiteiroId = () => {
+            const id = AuthService.getUserId();
+            if (id) return String(id);
+
+            try {
+                const rawUser = localStorage.getItem('user');
+                if (!rawUser) return null;
+                const parsedUser = JSON.parse(rawUser);
+                const baseUser = parsedUser?.user || parsedUser?.data || parsedUser;
+                const fallbackId = baseUser?.id || baseUser?.idConfeiteiro || baseUser?.confeiteiroId || baseUser?.loja?.id || baseUser?.confeiteiro?.id || baseUser?.usuario?.id || baseUser?.idUsuario || baseUser?.userId;
+                return fallbackId ? String(fallbackId) : null;
+            } catch (error) {
+                console.warn('Não foi possível resolver o ID do confeiteiro no dashboard:', error);
+                return null;
+            }
+        };
+
+        const id = resolveConfeiteiroId();
         if (id) {
             setConfeiteiroId(id);
         } else {
@@ -48,12 +84,19 @@ const DashboardHome = ({ editMode, userData }) => {
                 
                 console.log("Buscando dados integrados para o confeiteiro ID:", confeiteiroId);
                 
-                const [dadosPedidos, dadosConfeiteiro] = await Promise.all([
-                    OrderService.getFilaTrabalho(confeiteiroId).catch(() => []),
+                const [dadosTodos, dadosConfeiteiro] = await Promise.all([
+                    OrderService.getTodosPedidos(confeiteiroId).catch(() => []),
                     ConfeiteiroService.getConfeiteiro(confeiteiroId).catch(() => null)
                 ]);
 
-                setPedidosBanco(dadosPedidos || []);
+                const pedidosCombinados = normalizarLista(dadosTodos);
+                const pedidosUnicosMap = new Map();
+                pedidosCombinados.forEach((p) => {
+                    if (p?.id != null && !pedidosUnicosMap.has(p.id)) {
+                        pedidosUnicosMap.set(p.id, p);
+                    }
+                });
+                setPedidosBanco(Array.from(pedidosUnicosMap.values()));
 
                 if (dadosConfeiteiro) {
                     console.log("Dados do Confeiteiro retornados do Banco:", dadosConfeiteiro);
@@ -98,38 +141,59 @@ const DashboardHome = ({ editMode, userData }) => {
         };
 
         buscarDadosDashboard();
-    }, [confeiteiroId, dadosLoja, userData]); 
+    }, [confeiteiroId, dadosLoja, userData, atualizacaoPedidos]); 
+
+    useEffect(() => {
+        if (confeiteiroId && typeof carregarDadosFinanceiros === 'function') {
+            carregarDadosFinanceiros(confeiteiroId);
+        }
+    }, [confeiteiroId, carregarDadosFinanceiros]);
 
     const kpisCalculados = useMemo(() => {
-        const novosEPendentes = pedidosBanco.filter(p => p.status === 'NOVO' || p.status === 'PENDENTE');
-        const agendadosProximos = pedidosBanco.filter(p => p.agendado === true || p.status === 'AGENDADO');
+        const financeiro = dashboardData?.financeiro || {};
+        const pedidosDashboard = dashboardData?.pedidos || {};
+        const novosEPendentes = pedidosBanco.filter(p => ['NOVO', 'PENDENTE'].includes((p.status || '').toUpperCase()));
+        const agendadosProximos = pedidosBanco.filter(pedidoAgendado);
         
-        const totalVendasHoje = pedidosBanco
-            .filter(p => p.status !== 'CANCELADO')
-            .reduce((acc, p) => acc + (p.valorPedido || 0), 0);
+        const STATUS_FINALIZADOS = ['ENTREGUE', 'CONCLUIDO', 'PAGO'];
+        const pedidosFinalizados = pedidosBanco.filter(p => STATUS_FINALIZADOS.includes((p.status || '').toUpperCase()));
+        const totalVendasPedidos = pedidosFinalizados
+            .reduce((acc, p) => acc + toNumber(p.valorPedido ?? p.valorTotal ?? p.total ?? p.valor), 0);
+        const totalVendasHoje = financeiro.vendasTotais ?? financeiro.vendasMes ?? totalVendasPedidos;
+        const totalPedidos = pedidosDashboard.concluidos ?? pedidosFinalizados.length;
 
-        const ticketMedio = pedidosBanco.length > 0 ? (totalVendasHoje / pedidosBanco.length) : 0;
+        const ticketMedio = financeiro.ticketMedio ?? (totalPedidos > 0 ? (totalVendasHoje / totalPedidos) : 0);
 
         return {
-            pedidosHoje: pedidosBanco.length,
-            pedidosPendentesCount: novosEPendentes.length,
-            vendasHojeValor: totalVendasHoje,
+            pedidosHoje: totalPedidos,
+            pedidosPendentesCount: pedidosDashboard.pendentes ?? novosEPendentes.length,
+            vendasHojeValor: toNumber(totalVendasHoje),
             ticketMedioValor: ticketMedio,
             agendamentosContagem: agendadosProximos.length,
             listaRecentes: pedidosBanco.slice(0, 5),
             listaAgendados: agendadosProximos.slice(0, 3)
         };
-    }, [pedidosBanco]);
+    }, [dashboardData, pedidosBanco]);
 
     const dadosGraficoVendas = useMemo(() => [
-        { name: 'Seg', vendas: kpisCalculados.vendasHojeValor * 0.1 },
-        { name: 'Ter', vendas: kpisCalculados.vendasHojeValor * 0.3 },
-        { name: 'Qua', vendas: kpisCalculados.vendasHojeValor * 0.2 },
-        { name: 'Qui', vendas: kpisCalculados.vendasHojeValor * 0.4 },
-        { name: 'Sex', vendas: kpisCalculados.vendasHojeValor * 0.6 },
-        { name: 'Sáb', vendas: kpisCalculados.vendasHojeValor * 0.9 },
-        { name: 'Dom', vendas: kpisCalculados.vendasHojeValor }
-    ], [kpisCalculados.vendasHojeValor]);
+        ...(dashboardData?.vendasSemana || [])
+    ], [dashboardData?.vendasSemana]);
+
+    const financeiro = dashboardData?.financeiro || {};
+
+    useEffect(() => {
+        const atualizarPedidos = () => {
+            requisicaoFeita.current = false;
+            setAtualizacaoPedidos(currentValue => currentValue + 1);
+        };
+
+        window.addEventListener('pedidoCriado', atualizarPedidos);
+        window.addEventListener('pedidoAtualizado', atualizarPedidos);
+        return () => {
+            window.removeEventListener('pedidoCriado', atualizarPedidos);
+            window.removeEventListener('pedidoAtualizado', atualizarPedidos);
+        };
+    }, []);
 
     const handleEdit = async (field, value) => {
         const novosDadosVisuais = { ...displayStoreData, [field]: value };
@@ -264,13 +328,13 @@ const DashboardHome = ({ editMode, userData }) => {
                         {kpisCalculados.listaRecentes.map(pedido => (
                             <li key={pedido.id} className={Styles.pedidoItem}>
                                 <div className={Styles.pedidoInfo}>
-                                    <strong>#{pedido.id}</strong> - {pedido.cliente?.nome || 'Cliente Balcão'}
+                                    <strong>#{pedido.id}</strong> - {pedido.cliente?.nome || pedido.nomeCliente || 'Cliente Balcão'}
                                     <span className={Styles.produto}>
-                                        {pedido.itens?.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(', ') || 'Doce Variado'}
+                                        {pedido.itens?.map(i => `${i.quantidade}x ${i.produto?.nome || i.nomeProduto || 'Encomenda'}`).join(', ') || pedido.descricaoPedido || pedido.observacao || 'Doce Variado'}
                                     </span>
                                 </div>
                                 <div className={Styles.pedidoMeta}>
-                                    <span className={Styles.valor}>R$ {pedido.valorPedido?.toFixed(2)}</span>
+                                    <span className={Styles.valor}>R$ {toNumber(pedido.valorPedido ?? pedido.valorTotal ?? pedido.total).toFixed(2)}</span>
                                     <span className={`${Styles.statusTag} ${Styles[pedido.status || 'NOVO']}`}>{pedido.status}</span>
                                 </div>
                             </li>
@@ -288,8 +352,8 @@ const DashboardHome = ({ editMode, userData }) => {
                                     {evento.dataEntregaAgendada ? new Date(evento.dataEntregaAgendada).toLocaleDateString('pt-BR') : 'Sem data'}
                                 </div>
                                 <div className={Styles.eventInfo}>
-                                    <strong>{evento.cliente?.nome || 'Agendado Manual'}</strong>
-                                    <span>{evento.itens?.map(i => i.produto?.nome).join(', ') || 'Encomenda'}</span>
+                                    <strong>{evento.cliente?.nome || evento.nomeCliente || 'Agendado Manual'}</strong>
+                                    <span>{evento.itens?.map(i => i.produto?.nome || i.nomeProduto).join(', ') || evento.descricaoPedido || evento.observacao || 'Encomenda'}</span>
                                 </div>
                             </div>
                         ))}
@@ -300,11 +364,11 @@ const DashboardHome = ({ editMode, userData }) => {
                     <h3>Resumo Financeiro</h3>
                     <div className={Styles.financialItem}>
                         <span>Total Líquido Estimado:</span>
-                        <strong>R$ {(kpisCalculados.vendasHojeValor * 0.7).toFixed(2)}</strong>
+                        <strong>R$ {(toNumber(financeiro.lucroLiquido ?? financeiro.lucro)).toFixed(2)}</strong>
                     </div>
                     <div className={Styles.financialItem}>
                         <span>Faturamento Bruto Total:</span>
-                        <strong>R$ {kpisCalculados.vendasHojeValor.toFixed(2)}</strong>
+                        <strong>R$ {(financeiro.vendasMes ?? 0).toFixed(2)}</strong>
                     </div>
                 </div>
                 
@@ -316,6 +380,7 @@ const DashboardHome = ({ editMode, userData }) => {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 };

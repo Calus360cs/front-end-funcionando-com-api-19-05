@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IoTrendingUp, IoTrendingDown, IoCard, IoStatsChart } from 'react-icons/io5';
 // 🛠️ IMPORT AJUSTADO: Adicionado a extensão .jsx explícita para evitar problemas no ecossistema do Vite
 import { useDashboard } from '../context/DashboardContext.jsx';
+import AuthService from '../services/authService';
 import SalesChart from './SalesChart';
 import Styles from './FinanceiroModerno.module.css';
 
@@ -12,8 +13,8 @@ const FinanceiroModerno = () => {
 
     // Executa a carga com o ID do confeiteiro logado
     useEffect(() => {
-        const idConfeiteiroLogado = 10005; // ID real mapeado nos logs do seu banco
-        if (typeof carregarDadosFinanceiros === 'function') {
+        const idConfeiteiroLogado = AuthService.getUserId();
+        if (idConfeiteiroLogado && typeof carregarDadosFinanceiros === 'function') {
             carregarDadosFinanceiros(idConfeiteiroLogado);
         }
     }, [carregarDadosFinanceiros]);
@@ -21,18 +22,19 @@ const FinanceiroModerno = () => {
     // ----------------------------------------------------------------
     // BLINDAGEM DE FALLBACKS (Garante valores seguros mesmo se a API falhar)
     // ----------------------------------------------------------------
+    const financeiro = dashboardData?.financeiro || {};
     const dadosFinanceiros = {
-        rendimentoMes: dashboardData?.financeiro?.vendasMes || 0,
-        totalPedidos: dashboardData?.pedidos?.concluidos || dashboardData?.pedidos?.hoje || 0,
-        ticketMedio: dashboardData?.financeiro?.ticketMedio || 0,
-        pedidosPendentes: dashboardData?.pedidos?.pendentes || 0,
-        vendasTotais: dashboardData?.financeiro?.vendasMes || 0,
-        despesasTotais: dashboardData?.financeiro?.despesasTotais || 0,
-        lucro: (dashboardData?.financeiro?.vendasMes || 0) - (dashboardData?.financeiro?.despesasTotais || 0),
-        crescimentoMes: dashboardData?.financeiro?.crescimentoMes || 0
+        rendimentoMes: financeiro.vendasMes ?? 0,
+        totalPedidos: dashboardData?.pedidos?.concluidos ?? 0,
+        ticketMedio: financeiro.ticketMedio ?? 0,
+        pedidosPendentes: dashboardData?.pedidos?.pendentes ?? 0,
+        vendasTotais: financeiro.vendasTotais ?? financeiro.vendasMes ?? 0,
+        despesasTotais: financeiro.despesasTotais ?? 0,
+        lucro: financeiro.lucroLiquido ?? financeiro.lucro ?? ((financeiro.vendasTotais ?? financeiro.vendasMes ?? 0) - (financeiro.despesasTotais ?? 0)),
+        crescimentoMes: financeiro.crescimentoMes ?? 0
     };
 
-    const dadosVendasMensais = dashboardData?.financeiro?.vendasMensais || [
+    const dadosVendasMensais = dashboardData?.financeiro?.vendasMensais ?? [
         { month: 'Jan', total: 0 },
         { month: 'Fev', total: 0 },
         { month: 'Mar', total: 0 },
@@ -41,20 +43,8 @@ const FinanceiroModerno = () => {
         { month: 'Jun', total: 0 }
     ];
 
-    // Mapeia as propriedades exatas que a API de movimentações do Java entrega
-    const transacoesRecentes = dashboardData?.pedidos?.recentes?.map(movimentacao => {
-        const dataFormatada = movimentacao.dataLancamento 
-            ? new Date(movimentacao.dataLancamento).toLocaleDateString('pt-BR')
-            : new Date().toLocaleDateString('pt-BR');
-
-        return {
-            id: movimentacao.id,
-            tipo: movimentacao.tipo?.toLowerCase() || 'receita',
-            descricao: movimentacao.descricao || 'Movimentação sem descrição',
-            valor: movimentacao.valor || 0,
-            data: dataFormatada
-        };
-    }) || [];
+    // Dados já preparados pelo contexto (tipo, data, valor, descricao já normalizados)
+    const transacoesRecentes = dashboardData?.pedidos?.recentes ?? [];
 
     const vendasSemanaisSeguras = typeof getVendasSemanais === 'function' ? getVendasSemanais() : [];
 

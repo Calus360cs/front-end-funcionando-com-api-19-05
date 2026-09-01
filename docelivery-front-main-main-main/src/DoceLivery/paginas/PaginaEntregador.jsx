@@ -7,7 +7,35 @@ import EntregadorGanhos from '../Components/EntregadorGanhos';
 import EntregadorEntregas from '../Components/EntregadorEntregas';
 import EntregadorSuporte from '../Components/EntregadorSuporte';
 import EntregadorPerfil from '../Components/EntregadorPerfil';
+import EntregadorService from '../services/entregadorService';
+import { createSupportTicket } from '../services/supportContact';
 
+const encontrarValor = (obj, chaves) => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  const fila = [obj];
+
+  while (fila.length > 0) {
+    const atual = fila.shift();
+
+    if (Array.isArray(atual)) {
+      fila.push(...atual);
+      continue;
+    }
+
+    if (!atual || typeof atual !== 'object') continue;
+
+    for (const chave of chaves) {
+      if (Object.prototype.hasOwnProperty.call(atual, chave)) {
+        const valor = atual[chave];
+        if (valor !== undefined && valor !== null && valor !== '') return valor;
+      }
+    }
+
+    fila.push(...Object.values(atual));
+  }
+
+  return undefined;
+};
 
 const PaginaEntregador = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('home');
@@ -15,6 +43,9 @@ const PaginaEntregador = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userData, setUserData] = useState({ nome: '', veiculo: '' });
   const [statusEntregador, setStatusEntregador] = useState('offline');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSent, setSupportSent] = useState(false);
+  const [supportLoading, setSupportLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -25,16 +56,36 @@ const PaginaEntregador = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('userToken');
-    const userType = localStorage.getItem('userType');
-    
-    if (!token || userType !== 'entregador') {
-      navigate('/docelivery/entregador/login-entregador');
-    } else {
-      const nomeEntregador = localStorage.getItem('nomeEntregador') || 'João Silva';
-      const veiculo = localStorage.getItem('veiculo') || 'Moto Honda CG 160';
+    const carregarDadosUsuario = async () => {
+      const token = localStorage.getItem('userToken');
+      const userType = localStorage.getItem('userType');
+      
+      if (!token || userType !== 'entregador') {
+        navigate('/docelivery/entregador/login-entregador');
+        return;
+      }
+
+      const nomeEntregador = localStorage.getItem('nomeEntregador') || 'Entregador';
+      const veiculo = localStorage.getItem('veiculo') || 'Moto';
       setUserData({ nome: nomeEntregador, veiculo });
-    }
+
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      try {
+        const response = await EntregadorService.getEntregador(userId);
+        const perfil = response?.data || response?.entregador || response?.dados || response?.usuario || response || {};
+        const nomeAtualizado = encontrarValor(perfil, ['nome', 'nomeCompleto', 'name', 'fullName', 'nomeUsuario']) || nomeEntregador;
+        const veiculoAtualizado = encontrarValor(perfil, ['veiculo', 'tipoVeiculo', 'tipo', 'vehicleType', 'veiculoTipo']) || veiculo;
+        setUserData({ nome: nomeAtualizado, veiculo: veiculoAtualizado });
+        localStorage.setItem('nomeEntregador', nomeAtualizado);
+        localStorage.setItem('veiculo', veiculoAtualizado);
+      } catch (error) {
+        console.warn('Não foi possível carregar o perfil do entregador:', error);
+      }
+    };
+
+    carregarDadosUsuario();
   }, [navigate]);
 
   const menuItems = [
@@ -93,7 +144,51 @@ const PaginaEntregador = () => {
       case 'relatorios':
         return <EntregadorGanhos showRelatorios={true} />;
       case 'suporte':
-        return <EntregadorSuporte />;
+        return (
+          <div className={Styles.supportPanel}>
+            <div className={Styles.supportPanelHeader}>
+              <h3>Atendimento por suporte</h3>
+              <p>Envie uma mensagem rápida para o time de suporte.</p>
+            </div>
+            <textarea
+              className={Styles.supportTextarea}
+              placeholder="Conte qual problema você está enfrentando..."
+              value={supportMessage}
+              onChange={(e) => setSupportMessage(e.target.value)}
+            />
+            <button
+              className={Styles.supportButton}
+              onClick={async () => {
+                if (!supportMessage.trim()) {
+                  alert('Descreva sua dúvida antes de enviar.');
+                  return;
+                }
+                setSupportLoading(true);
+                try {
+                  await createSupportTicket({
+                    userType: 'entregador',
+                    userId: localStorage.getItem('userId'),
+                    assunto: 'Contato pelo painel do entregador',
+                    mensagem: supportMessage.trim(),
+                  });
+                  setSupportSent(true);
+                  setSupportMessage('');
+                  setTimeout(() => setSupportSent(false), 4000);
+                } catch (error) {
+                  console.error('Erro ao enviar suporte:', error);
+                  alert('Não foi possível enviar o chamado no momento. Tente novamente mais tarde.');
+                } finally {
+                  setSupportLoading(false);
+                }
+              }}
+              disabled={supportLoading}
+            >
+              {supportLoading ? 'Enviando...' : 'Enviar para o suporte'}
+            </button>
+            {supportSent && <span className={Styles.supportSuccess}>Mensagem enviada com sucesso!</span>}
+            <div className={Styles.supportSecondary}><EntregadorSuporte /></div>
+          </div>
+        );
       case 'perfil':
         return <EntregadorPerfil onUserDataUpdate={setUserData} />;
       default:
@@ -183,7 +278,7 @@ const PaginaEntregador = () => {
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <IoNotifications size={20} />
-              <span className={Styles.notificationBadge}>3</span>
+              <span className={Styles.notificationBadge}>0</span>
             </button>
             
             <div className={Styles.userProfile}>
@@ -213,16 +308,8 @@ const PaginaEntregador = () => {
           <div className={Styles.notificationsDropdown}>
             <h3>Notificações</h3>
             <div className={Styles.notificationItem}>
-              <span>Nova entrega disponível</span>
-              <small>2 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Entrega concluída com sucesso</span>
-              <small>15 min atrás</small>
-            </div>
-            <div className={Styles.notificationItem}>
-              <span>Pagamento processado</span>
-              <small>1 hora atrás</small>
+              <span>Nenhuma notificação no momento.</span>
+              <small>As novas mensagens aparecerão aqui.</small>
             </div>
           </div>
         </>

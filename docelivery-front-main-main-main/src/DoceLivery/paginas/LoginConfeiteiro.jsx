@@ -21,8 +21,7 @@ const LoginConfeiteiro = () => {
     setLoading(true);
     try {
       await authService.loginConfeiteiro(formData);
-      // Se chegou aqui, o 200 OK aconteceu!
-      navigate('/docelivery/confeiteiro/Confeiteiro-Dashboard');
+      navigate('/docelivery/confeiteiro/dashboard');
     } catch (err) {
       setErro("Verifique suas credenciais.");
     } finally {

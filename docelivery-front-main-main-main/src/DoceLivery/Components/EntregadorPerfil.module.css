@@ -1,27 +1,69 @@
 .perfilContainer {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 24px;
+}
+
+.perfilHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #f8f5ff 0%, #f5f3ff 100%);
+  border: 1px solid #e9d5ff;
+  border-radius: 20px;
+  padding: 20px 24px;
+}
+
+.headerTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.iconBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8a2be2, #7c3aed);
+  color: white;
+  box-shadow: 0 10px 25px rgba(138, 43, 226, 0.25);
 }
 
 .perfilHeader h2 {
-  margin: 0 0 10px 0;
+  margin: 0 0 4px 0;
   color: #1f2937;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .perfilHeader p {
   margin: 0;
   color: #6b7280;
-  font-size: 1rem;
+  font-size: 0.95rem;
+}
+
+.headerStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .secaoCard {
-  background: white;
-  border-radius: 15px;
-  padding: 25px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(145deg, #ffffff 0%, #faf7ff 100%);
+  border: 1px solid #efe7ff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
 }
 
 .secaoHeader {
@@ -58,11 +100,12 @@
 
 .formGroup input,
 .formGroup select {
-  padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  padding: 12px 14px;
+  border: 1px solid #d7d3e8;
+  border-radius: 10px;
+  font-size: 0.95rem;
   transition: all 0.2s ease;
+  background: white;
 }
 
 .formGroup input:focus,
@@ -85,13 +128,13 @@
 }
 
 .salvarBtn {
-  padding: 15px 30px;
+  padding: 14px 28px;
   border: none;
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #8a2be2, #7c3aed);
   color: white;
   border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -102,6 +145,11 @@
 }
 
 @media (max-width: 768px) {
+  .perfilHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .formGrid {
     grid-template-columns: 1fr;
   }

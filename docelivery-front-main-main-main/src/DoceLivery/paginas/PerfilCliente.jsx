@@ -38,36 +38,49 @@ const PerfilCliente = () => {
   useEffect(() => {
     const carregarDados = async () => {
       const id = localStorage.getItem('userId');
-      
-      // 1. Carga inicial de dados locais (LocalStorage)
-      const dadosLogin = localStorage.getItem('dadosCliente');
-      const usuarioLocal = dadosLogin ? JSON.parse(dadosLogin) : {};
-      const preferenciasSalvas = localStorage.getItem('clientProfile') ? JSON.parse(localStorage.getItem('clientProfile')) : null;
 
-      setProfileData(prev => ({
-        ...prev,
-        id: id || '',
-        nome: usuarioLocal.nome || localStorage.getItem('userName') || '',
-        apelido: usuarioLocal.apelido || localStorage.getItem('userApelido') || '',
-        email: usuarioLocal.email || localStorage.getItem('userEmail') || '',
-        telefone: usuarioLocal.telefone || '',
-        cpf: usuarioLocal.cpf || '',
-        dataNascimento: usuarioLocal.dataNascimento || '',
-        cep: usuarioLocal.cep || '',
-        logradouro: usuarioLocal.logradouro || '',
-        numero: usuarioLocal.numero || '',
-        complemento: usuarioLocal.complemento || '',
-        bairro: usuarioLocal.bairro || '',
-        cidade: usuarioLocal.cidade || '',
-        estado: usuarioLocal.uf || usuarioLocal.estado || '',
-        preferenciasDoces: preferenciasSalvas?.preferenciasDoces || prev.preferenciasDoces,
-        restricoesAlimentares: preferenciasSalvas?.restricoesAlimentares || prev.restricoesAlimentares,
-      }));
+      try {
+        const dadosLogin = localStorage.getItem('dadosCliente');
+        const usuarioLocal = dadosLogin ? JSON.parse(dadosLogin) : {};
+        const preferenciasSalvas = localStorage.getItem('clientProfile') ? JSON.parse(localStorage.getItem('clientProfile')) : null;
 
-      // 2. Busca dados frescos no Backend (Removido - Usar dados locais do login)
-      // Se precisar buscar dados do servidor, verificar se a rota /api/user/profile existe no backend
-      // Por enquanto, usando dados do localStorage que já foram preenchidos durante o login
-      setLoadingDados(false);
+        let dadosApi = null;
+        if (id) {
+          try {
+            dadosApi = await ApiService.get(`/cliente/${id}`);
+          } catch (apiError) {
+            console.warn('Não foi possível buscar perfil no backend, usando os dados locais.', apiError);
+          }
+        }
+
+        const perfilApi = dadosApi?.data || dadosApi || {};
+        const enderecoCompleto = perfilApi.endereco || usuarioLocal.endereco || '';
+        const enderecoPartes = typeof enderecoCompleto === 'string' ? enderecoCompleto.split(',') : [];
+
+        setProfileData(prev => ({
+          ...prev,
+          id: perfilApi.id || id || '',
+          nome: perfilApi.nome || usuarioLocal.nome || localStorage.getItem('userName') || '',
+          apelido: perfilApi.apelido || usuarioLocal.apelido || localStorage.getItem('userApelido') || '',
+          email: perfilApi.email || usuarioLocal.email || localStorage.getItem('userEmail') || '',
+          telefone: perfilApi.telefone || usuarioLocal.telefone || '',
+          cpf: perfilApi.cpf || usuarioLocal.cpf || '',
+          dataNascimento: perfilApi.dataNascimento || usuarioLocal.dataNascimento || '',
+          cep: perfilApi.cep || usuarioLocal.cep || '',
+          logradouro: perfilApi.logradouro || usuarioLocal.logradouro || enderecoPartes[0] || '',
+          numero: perfilApi.numero || usuarioLocal.numero || enderecoPartes[1]?.trim() || '',
+          complemento: perfilApi.complemento || usuarioLocal.complemento || '',
+          bairro: perfilApi.bairro || usuarioLocal.bairro || '',
+          cidade: perfilApi.cidade || usuarioLocal.cidade || '',
+          estado: perfilApi.uf || perfilApi.estado || usuarioLocal.uf || usuarioLocal.estado || '',
+          preferenciasDoces: preferenciasSalvas?.preferenciasDoces || prev.preferenciasDoces,
+          restricoesAlimentares: preferenciasSalvas?.restricoesAlimentares || prev.restricoesAlimentares,
+        }));
+      } catch (error) {
+        console.error('Erro ao carregar perfil do cliente:', error);
+      } finally {
+        setLoadingDados(false);
+      }
     };
 
     carregarDados();
@@ -215,6 +228,10 @@ const PerfilCliente = () => {
           <button className={Styles.navButton} onClick={() => navigate('/docelivery/cliente/meus-pedidos')}>
             <FontAwesomeIcon icon={faBoxOpen} />
             <span>Meus Pedidos</span>
+          </button>
+          <button className={Styles.navButton} onClick={() => navigate('/docelivery/cliente/Home-Page')}>
+            <FontAwesomeIcon icon={faHeart} />
+            <span>Explorar Lojas</span>
           </button>
         </div>
 

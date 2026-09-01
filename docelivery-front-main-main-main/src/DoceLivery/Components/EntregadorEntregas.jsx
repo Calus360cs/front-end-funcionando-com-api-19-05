@@ -1,15 +1,62 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IoCheckmarkCircleOutline, IoTimeOutline, IoCloseCircleOutline } from 'react-icons/io5';
 import Styles from './EntregadorEntregas.module.css';
+import EntregadorService from '../services/entregadorService';
+
+const normalizarEntregas = (response) => {
+  const payload = response?.data || response?.entregas || response?.items || response || [];
+  const lista = Array.isArray(payload)
+    ? payload
+    : (payload?.content || payload?.entregas || payload?.items || []);
+
+  return lista.map((item, index) => {
+    const statusRaw = String(item?.status ?? item?.estado ?? item?.situacao ?? item?.state ?? '').toLowerCase();
+    const status = statusRaw.includes('entreg') || statusRaw.includes('conclu') || statusRaw.includes('final')
+      ? 'concluida'
+      : statusRaw.includes('cancel') || statusRaw.includes('recus') || statusRaw.includes('erro')
+        ? 'cancelada'
+        : 'pendente';
+
+    return {
+      id: item?.id || item?.pedidoId || item?.pedido?.id || `#${index + 1}`,
+      cliente: item?.cliente?.nome || item?.clienteNome || item?.nomeCliente || item?.cliente?.name || 'Cliente',
+      endereco: item?.endereco || item?.enderecoEntrega || item?.enderecoCliente || item?.enderecoCompleto || 'Endereço não informado',
+      produto: item?.produto || item?.descricao || item?.itens?.[0]?.nome || item?.pedido?.descricao || 'Pedido',
+      valor: Number(item?.valor ?? item?.valorTotal ?? item?.total ?? item?.preco ?? item?.pedido?.valor ?? 0),
+      status,
+      data: item?.data || item?.dataEntrega || item?.criadoEm || item?.createdAt || 'Sem data',
+      avaliacao: item?.avaliacao ?? item?.nota ?? item?.pedido?.avaliacao ?? null
+    };
+  });
+};
 
 const EntregadorEntregas = () => {
   const [filtroStatus, setFiltroStatus] = useState('todas');
+  const [entregas, setEntregas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
 
-  const entregas = [
-    { id: '#2847', cliente: 'Maria Silva', endereco: 'Rua das Flores, 123', produto: 'Bolo de Chocolate', valor: 45.90, status: 'concluida', data: '14/01 - 14:30', avaliacao: 5 },
-    { id: '#2846', cliente: 'João Santos', endereco: 'Av. Principal, 456', produto: '12 Brigadeiros', valor: 24.00, status: 'concluida', data: '14/01 - 13:45', avaliacao: 4 },
-    { id: '#2845', cliente: 'Ana Costa', endereco: 'Rua do Centro, 789', produto: 'Torta de Morango', valor: 67.50, status: 'cancelada', data: '14/01 - 12:20', avaliacao: null }
-  ];
+  useEffect(() => {
+    const carregarEntregas = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setCarregando(false);
+        return;
+      }
+
+      try {
+        const response = await EntregadorService.getEntregasAtribuidas(userId);
+        const lista = normalizarEntregas(response);
+        setEntregas(lista);
+      } catch (error) {
+        console.warn('Não foi possível carregar as entregas do entregador:', error);
+        setEntregas([]);
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    carregarEntregas();
+  }, []);
 
   const entregasFiltradas = entregas.filter(entrega => 
     filtroStatus === 'todas' || entrega.status === filtroStatus
@@ -49,7 +96,14 @@ const EntregadorEntregas = () => {
         </div>
       </div>
 
+      {carregando && <p className={Styles.semAvaliacao}>Carregando histórico de entregas...</p>}
+
       <div className={Styles.entregasList}>
+        {!carregando && entregasFiltradas.length === 0 && (
+          <div className={Styles.entregaCard}>
+            <p>Nenhuma entrega foi encontrada para este entregador.</p>
+          </div>
+        )}
         {entregasFiltradas.map(entrega => (
           <div key={entrega.id} className={Styles.entregaCard}>
             <div className={Styles.entregaHeader}>

@@ -16,9 +16,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // 🟢 Agora aceitamos "title" e "labelDataset" dinâmicos vindos de quem chama o gráfico
 const SalesChart = ({ salesData, title = "Gráfico de Vendas", labelDataset = "Vendas (R$)" }) => {
     if (!salesData || salesData.length === 0) {
-        return <p>Dados de vendas não disponíveis para o gráfico.</p>;
+        return <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>Dados de vendas não disponíveis.</p>;
     }
-    
+
+    const todosZero = salesData.every(d => (d.total || d.vendas || 0) === 0);
+
     // Suporta 'day' (semana), 'month' (meses) ou 'name'
     const labels = salesData.map(data => data.day || data.month || data.name);
 
@@ -71,6 +73,11 @@ const SalesChart = ({ salesData, title = "Gráfico de Vendas", labelDataset = "V
 
     return (
         <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            {todosZero && (
+                <p style={{ textAlign: 'center', color: '#aaa', marginTop: 0, marginBottom: '12px' }}>
+                    Nenhuma venda registrada no período.
+                </p>
+            )}
             <Line data={data} options={options} />
         </div>
     );

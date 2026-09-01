@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoPersonOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import Styles from './Formulario.module.css';
+import AuthService from '../services/authService';
 
 const LoginAdmin = () => {
   const [formData, setFormData] = useState({
@@ -22,24 +23,19 @@ const LoginAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    // Credenciais do administrador
-    const adminCredentials = {
-      email: 'admin@docelivery.com',
-      senha: 'admin123'
-    };
-
-    if (formData.email === adminCredentials.email && formData.senha === adminCredentials.senha) {
-      localStorage.setItem('userToken', 'admin-token-123');
+    try {
+      const response = await AuthService.loginAdmin(formData.email, formData.senha);
+      const adminName = response?.user?.nome || response?.nome || response?.name || 'Administrador';
+      const adminId = response?.user?.id || response?.id || '';
       localStorage.setItem('userType', 'admin');
-      localStorage.setItem('adminName', 'Administrador');
-      window.open('/docelivery/admin/dashboard', '_blank');
-      navigate('/');
-    } else {
-      alert('Credenciais inválidas!');
+      localStorage.setItem('adminName', adminName);
+      if (adminId) localStorage.setItem('adminId', String(adminId));
+      navigate('/docelivery/admin/dashboard');
+    } catch (err) {
+      alert('Credenciais inválidas ou erro ao conectar com o servidor.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -93,11 +89,7 @@ const LoginAdmin = () => {
           </button>
         </form>
 
-        <div className={Styles.loginInfo}>
-          <p><strong>Credenciais de teste:</strong></p>
-          <p>Email: admin@docelivery.com</p>
-          <p>Senha: admin123</p>
-        </div>
+
       </div>
     </div>
   );

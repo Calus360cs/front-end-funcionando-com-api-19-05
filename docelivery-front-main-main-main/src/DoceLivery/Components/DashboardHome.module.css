@@ -241,6 +241,10 @@
     border: 1px solid #ffeaa7;
 }
 
+.supportSection {
+    margin-top: 24px;
+}
+
 .alertItem {
     display: flex;
     align-items: center;

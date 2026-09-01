@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     CADASTRO_CONFEITEIRO: '/auth/confeiteiro/cadastro',
     CADASTRO_ENTREGADOR: '/auth/entregador/cadastro',
     RECUPERAR_SENHA: '/auth/recuperar-senha',
+    ENTREGADOR_PROFILE: '/auth/entregador/me',
   },
   STORES: {
     LIST: '/stores',
@@ -41,6 +42,13 @@ export const API_ENDPOINTS = {
     PROFILE: '/user/profile',
     ADDRESSES: '/user/addresses',
     FAVORITES: '/user/favorites',
+  },
+  ADMIN: {
+    DASHBOARD: '/admin/dashboard',
+    USUARIOS: '/admin/usuarios',
+    LOJAS: '/admin/lojas',
+    PEDIDOS: '/admin/pedidos',
+    RELATORIOS: '/admin/relatorios',
   }
 };
 

@@ -8,9 +8,24 @@ import { IoTrendingUp, IoTimeOutline } from 'react-icons/io5';
  */
 const VendasTempoReal = () => {
     const { dashboardData } = useDashboard();
+
+    const calcularFallbackVendasHoje = () => {
+        const recentes = dashboardData?.pedidos?.recentes || [];
+        if (!Array.isArray(recentes) || recentes.length === 0) return 0;
+
+        return recentes.reduce((acc, item) => {
+            const tipo = (item?.tipo || '').toString().toLowerCase();
+            const valor = parseFloat(item?.valor ?? 0) || 0;
+            if (tipo === 'saida') return acc - valor;
+            return acc + valor;
+        }, 0);
+    };
     
     // Blindagem contra dados nulos ou indefinidos vindos do Contexto central
-    const faturamentoHoje = dashboardData?.financeiro?.vendasHoje || 0;
+    const vendasHojeContexto = dashboardData?.financeiro?.vendasHoje;
+    const faturamentoHoje = (vendasHojeContexto ?? 0) > 0
+        ? vendasHojeContexto
+        : calcularFallbackVendasHoje();
     const pedidosHoje = dashboardData?.pedidos?.hoje || 0;
 
     return (

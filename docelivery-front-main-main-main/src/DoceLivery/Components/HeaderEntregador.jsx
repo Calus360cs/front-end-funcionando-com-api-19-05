@@ -1,26 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { IoNotifications, IoMenu, IoCarOutline, IoStatsChart, IoWallet, IoPersonOutline } from 'react-icons/io5';
+import { IoNotifications, IoCarOutline, IoStatsChart, IoWallet, IoPersonOutline } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
 import Styles from './HeaderEntregador.module.css';
+import EntregadorService from '../services/entregadorService';
 
 const HeaderEntregador = () => {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [userData, setUserData] = useState({ nome: 'Entregador', veiculo: 'Moto' });
-  const [statusEntrega, setStatusEntrega] = useState('disponivel'); // disponivel, ocupado, offline
-  const [ganhosDia, setGanhosDia] = useState(85.50);
-  const [entregasHoje, setEntregasHoje] = useState(12);
+  const [userData, setUserData] = useState({ nome: 'Entregador', veiculo: '' });
+  const [statusEntrega, setStatusEntrega] = useState(() => localStorage.getItem('deliveryStatus') || 'disponivel');
+  const [ganhosDia, setGanhosDia] = useState(null);
+  const [entregasHoje, setEntregasHoje] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const nomeEntregador = localStorage.getItem('nomeEntregador') || 'João Silva';
-    const veiculo = localStorage.getItem('veiculo') || 'Moto Honda CG 160';
-    setUserData({ nome: nomeEntregador, veiculo });
+    const carregarDados = async () => {
+      const nomeEntregador = localStorage.getItem('nomeEntregador') || 'Entregador';
+      const veiculo = localStorage.getItem('veiculo') || '';
+      setUserData({ nome: nomeEntregador, veiculo });
+
+      const ganhosSalvos = localStorage.getItem('ganhosDia');
+      const entregasSalvas = localStorage.getItem('entregasHoje');
+
+      if (ganhosSalvos) setGanhosDia(Number(ganhosSalvos));
+      if (entregasSalvas) setEntregasHoje(Number(entregasSalvas));
+
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      try {
+        const response = await EntregadorService.getEntregador(userId);
+        const perfil = response?.data || response?.entregador || response?.dados || response?.usuario || response || {};
+        const nomeAtualizado = encontrarValor(perfil, ['nome', 'nomeCompleto', 'name', 'fullName', 'nomeUsuario']) || nomeEntregador;
+        const veiculoAtualizado = encontrarValor(perfil, ['veiculo', 'tipoVeiculo', 'tipo', 'vehicleType', 'veiculoTipo']) || veiculo;
+
+        setUserData({ nome: nomeAtualizado, veiculo: veiculoAtualizado });
+        localStorage.setItem('nomeEntregador', nomeAtualizado);
+        localStorage.setItem('veiculo', veiculoAtualizado);
+      } catch (error) {
+        console.warn('Não foi possível carregar o perfil do entregador no header:', error);
+      }
+    };
+
+    carregarDados();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('userToken');
     localStorage.removeItem('userType');
+    localStorage.removeItem('userId');
     localStorage.removeItem('nomeEntregador');
+    localStorage.removeItem('veiculo');
+    localStorage.removeItem('deliveryStatus');
     navigate('/docelivery/entregador/login');
   };
 
@@ -59,12 +89,12 @@ const HeaderEntregador = () => {
         <div className={Styles.statsQuick}>
           <div className={Styles.statItem}>
             <IoWallet size={16} />
-            <span>R$ {ganhosDia.toFixed(2)}</span>
+            <span>{ganhosDia != null ? `R$ ${ganhosDia.toFixed(2)}` : '—'}</span>
             <small>Hoje</small>
           </div>
           <div className={Styles.statItem}>
             <IoStatsChart size={16} />
-            <span>{entregasHoje}</span>
+            <span>{entregasHoje != null ? entregasHoje : '—'}</span>
             <small>Entregas</small>
           </div>
         </div>
@@ -74,9 +104,20 @@ const HeaderEntregador = () => {
           <div 
             className={Styles.statusIndicator}
             style={{ backgroundColor: getStatusColor() }}
-            onClick={() => {
+            onClick={async () => {
               const nextStatus = statusEntrega === 'disponivel' ? 'offline' : 'disponivel';
+              const apiStatus = nextStatus === 'disponivel' ? 'ONLINE' : 'OFFLINE';
               setStatusEntrega(nextStatus);
+              localStorage.setItem('deliveryStatus', nextStatus);
+
+              const userId = localStorage.getItem('userId');
+              if (userId) {
+                try {
+                  await EntregadorService.updateStatus(userId, apiStatus);
+                } catch (error) {
+                  console.warn('Não foi possível atualizar o status no backend:', error);
+                }
+              }
             }}
           >
             <div className={Styles.statusDot}></div>
@@ -89,7 +130,7 @@ const HeaderEntregador = () => {
           onClick={() => setShowNotifications(!showNotifications)}
         >
           <IoNotifications size={20} />
-          <span className={Styles.notificationBadge}>5</span>
+          <span className={Styles.notificationBadge}>0</span>
         </button>
         
         <div className={Styles.userProfile}>
@@ -107,24 +148,8 @@ const HeaderEntregador = () => {
         <div className={Styles.notificationsDropdown}>
           <h3>Notificações</h3>
           <div className={Styles.notificationItem}>
-            <span>Nova entrega disponível</span>
-            <small>2 min atrás</small>
-          </div>
-          <div className={Styles.notificationItem}>
-            <span>Entrega concluída com sucesso</span>
-            <small>15 min atrás</small>
-          </div>
-          <div className={Styles.notificationItem}>
-            <span>Pagamento processado</span>
-            <small>1 hora atrás</small>
-          </div>
-          <div className={Styles.notificationItem}>
-            <span>Meta diária atingida!</span>
-            <small>2 horas atrás</small>
-          </div>
-          <div className={Styles.notificationItem}>
-            <span>Avaliação 5 estrelas recebida</span>
-            <small>3 horas atrás</small>
+            <span>Nenhuma notificação no momento.</span>
+            <small>As novas mensagens aparecerão aqui.</small>
           </div>
         </div>
       )}

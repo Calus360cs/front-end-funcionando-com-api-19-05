@@ -1,14 +1,15 @@
 .entregasContainer {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 24px;
 }
 
 .entregasHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .entregasHeader h2 {
@@ -20,10 +21,11 @@
 
 .filtros {
   display: flex;
-  background: white;
-  border-radius: 10px;
+  background: linear-gradient(135deg, #f8f5ff, #f5f3ff);
+  border: 1px solid #ece7ff;
+  border-radius: 12px;
   padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(138, 43, 226, 0.06);
 }
 
 .filtros button {
@@ -49,10 +51,11 @@
 }
 
 .entregaCard {
-  background: white;
-  border-radius: 15px;
+  background: linear-gradient(145deg, #ffffff 0%, #fcfaff 100%);
+  border: 1px solid #efe8ff;
+  border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
   transition: all 0.2s ease;
 }
 
@@ -65,7 +68,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1eaff;
 }
 
 .entregaId strong {

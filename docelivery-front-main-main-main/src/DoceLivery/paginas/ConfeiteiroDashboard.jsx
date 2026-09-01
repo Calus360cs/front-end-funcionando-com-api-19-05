@@ -10,6 +10,7 @@ import DashboardHome from "../Components/DashboardHome";
 import FinanceiroModerno from '../Components/FinanceiroModerno';
 import AgendamentosModerno from '../Components/AgendamentosModerno';
 import PerfilLoja from '../Components/PerfilLoja';
+import ConfeiteiroSuporte from '../Components/ConfeiteiroSuporte';
 import AppLogo from '../assests/img/doce_Livre_3.jpg';
 import { getImageUrl } from '../utils/urlUtils';
 
@@ -94,14 +95,15 @@ const ConfeiteiroDashboard = () => {
     } catch (e) {
       console.warn('Erro limpando localStorage durante logout', e);
     }
-    navigate('/docelivery/confeiteiro/cadastro');
+    navigate('/docelivery/confeiteiro/login-confeiteiro');
   };
 
   useEffect(() => {
     const token = localStorage.getItem('userToken') || localStorage.getItem('token');
     const userEmail = localStorage.getItem('userEmail');
+    const hasStoredSession = !!localStorage.getItem('user') || !!localStorage.getItem('dadosConfeiteiro');
 
-    if (!token && !userEmail) {
+    if (!token && !userEmail && !hasStoredSession) {
       navigate('/docelivery/confeiteiro/login-confeiteiro');
       return;
     }
@@ -187,6 +189,7 @@ const ConfeiteiroDashboard = () => {
     { id: 'finance', nome: 'Financeiro', icone: <IoStatsChart size={20} />, titulo: 'Controle Financeiro', descricao: 'Acompanhe receitas, despesas e lucros' },
     { id: 'agendamento', nome: 'Agendamentos', icone: <IoCalendar size={20} />, titulo: 'Agenda de Encomendas', descricao: 'Organize suas encomendas e prazos' },
     { id: 'perfil', nome: 'Perfil da Loja', icone: <IoSettings size={20} />, titulo: 'Configurações da Loja', descricao: 'Edite informações e configurações' },
+    { id: 'suporte', nome: 'Suporte', icone: <IoNotifications size={20} />, titulo: 'Atendimento e Ajuda', descricao: 'Entre em contato com o suporte' },
     { id: 'horarios', nome: 'Horários', icone: <IoCalendar size={20} />, titulo: 'Horário de Funcionamento', descricao: 'Configure os horários de abertura e fechamento' },
   ];
 
@@ -198,6 +201,14 @@ const ConfeiteiroDashboard = () => {
       case 'finance': return <FinanceiroModerno />;
       case 'agendamento': return <AgendamentosModerno />;
       case 'perfil': return <PerfilLoja />;
+      case 'suporte':
+        return (
+          <div className={Styles.suporteContainer}>
+            <h2>Suporte</h2>
+            <p>Envie uma mensagem diretamente para a equipe de suporte da Docelivery.</p>
+            <ConfeiteiroSuporte />
+          </div>
+        );
       case 'horarios':
         return (
           <div className={Styles.horariosContainer}>

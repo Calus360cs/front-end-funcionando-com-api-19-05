@@ -1,56 +1,61 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { IoHeadset, IoChatbubbleEllipses, IoCall, IoMail, IoChevronDown, IoChevronUp, IoPaperPlane, IoCheckmarkCircle, IoBicycle } from 'react-icons/io5';
+import { IoHeadset, IoChatbubbleEllipses, IoCall, IoMail, IoChevronDown, IoChevronUp, IoPaperPlane, IoCheckmarkCircle, IoStorefront } from 'react-icons/io5';
 import AuthService from '../services/authService';
-import ApiService from '../services/api';
+import api from '../services/api';
 import Styles from './Suporte.module.css';
 
 const FAQ = [
     {
-        categoria: 'Entregas',
+        categoria: 'Pedidos',
         itens: [
-            { p: 'Como aceito uma entrega?', r: 'Na tela principal do app, quando um pedido estiver disponível na sua região, toque em "Aceitar entrega". Você tem 30 segundos para aceitar.' },
-            { p: 'O que faço se não encontrar o endereço?', r: 'Tente ligar para o cliente pelo número disponível no pedido. Se não conseguir contato, acione o suporte pelo chat para orientação.' },
-            { p: 'Como marco a entrega como concluída?', r: 'Após entregar o pedido ao cliente, toque em "Confirmar entrega" na tela do pedido ativo. O valor é creditado automaticamente.' },
-            { p: 'Posso recusar uma entrega?', r: 'Sim, mas recusas frequentes podem afetar sua pontuação. Recuse apenas quando necessário.' },
+            { p: 'Como aceito um novo pedido?', r: 'Na aba "Pedidos" do seu painel, clique em "Aceitar" no card do pedido recebido. O status muda automaticamente para "Preparando".' },
+            { p: 'Posso cancelar um pedido já aceito?', r: 'Sim. Abra o pedido, clique em "Cancelar" e informe o motivo. O cliente será notificado automaticamente.' },
+            { p: 'Como marco um pedido como pronto?', r: 'No card do pedido em "Preparando", clique em "Marcar como Pronto". O entregador será acionado.' },
         ],
     },
     {
-        categoria: 'Ganhos',
+        categoria: 'Agendamentos',
         itens: [
-            { p: 'Como funciona o pagamento?', r: 'Seus ganhos são acumulados e transferidos automaticamente para sua conta cadastrada. O prazo é de 1 a 3 dias úteis após a entrega.' },
-            { p: 'Onde vejo meu extrato?', r: 'Acesse "Meus Ganhos" no menu do app para ver o histórico completo de entregas e valores recebidos.' },
-            { p: 'Por que meu saldo está diferente do esperado?', r: 'Verifique se há entregas com status pendente. Cancelamentos e devoluções também podem afetar o saldo. Entre em contato com o suporte se persistir.' },
+            { p: 'Como agendar uma encomenda manual?', r: 'Vá em "Agendamentos" e clique em "Nova Encomenda". Preencha os dados do cliente (mesmo sem conta na plataforma), produto e data de entrega.' },
+            { p: 'O cliente não tem conta. Posso agendar assim mesmo?', r: 'Sim! Basta informar o nome e telefone do cliente no formulário de agendamento. Não é necessário ter conta.' },
+            { p: 'Como cancelo um agendamento?', r: 'Na lista de "Próximas Entregas", clique no botão "Cancelar" do agendamento desejado e confirme.' },
         ],
     },
     {
-        categoria: 'Conta',
+        categoria: 'Financeiro',
         itens: [
-            { p: 'Como atualizo meus dados bancários?', r: 'Acesse "Perfil" > "Dados bancários" e atualize as informações. A alteração pode levar até 24h para ser processada.' },
-            { p: 'Minha conta foi bloqueada. O que faço?', r: 'Entre em contato com o suporte pelo WhatsApp ou e-mail informando seu CPF e o motivo do contato. Nossa equipe analisará o caso.' },
-            { p: 'Como altero meu veículo cadastrado?', r: 'Acesse "Perfil" > "Meu veículo" e edite as informações. Documentos podem ser solicitados para validação.' },
+            { p: 'Por que meu faturamento está zerado?', r: 'O painel financeiro considera apenas pedidos com status ENTREGUE, CONCLUÍDO ou PAGO. Pedidos em andamento não entram no cálculo.' },
+            { p: 'Quando recebo meu pagamento?', r: 'Os repasses são processados automaticamente após a confirmação de entrega. O prazo varia conforme a forma de pagamento do pedido.' },
+            { p: 'Como vejo o histórico de transações?', r: 'No "Painel Financeiro", role até a seção "Transações Recentes" para ver todas as movimentações.' },
         ],
     },
     {
-        categoria: 'Problemas',
+        categoria: 'Cardápio',
         itens: [
-            { p: 'O app travou durante uma entrega. O que faço?', r: 'Feche e reabra o app. Se o pedido sumir, entre em contato com o suporte imediatamente informando o número do pedido.' },
-            { p: 'Tive um acidente durante a entrega. O que faço?', r: 'Priorize sua segurança. Ligue para o suporte de emergência e registre um boletim de ocorrência. Nossa equipe orientará os próximos passos.' },
-            { p: 'O cliente não estava no endereço. O que faço?', r: 'Tente contato pelo telefone do pedido. Aguarde 5 minutos. Se não houver resposta, acione o suporte para orientação sobre devolução.' },
+            { p: 'Como adiciono um novo produto?', r: 'Vá em "Cardápio" e clique em "Adicionar Produto". Preencha nome, descrição, preço e foto.' },
+            { p: 'Como desativo um produto temporariamente?', r: 'No card do produto, use o toggle de ativo/inativo. O produto some do cardápio público sem ser excluído.' },
+        ],
+    },
+    {
+        categoria: 'Plataforma',
+        itens: [
+            { p: 'Como atualizo os dados da minha loja?', r: 'Acesse "Perfil da Loja" no menu lateral e edite as informações. Clique em "Salvar" para confirmar.' },
+            { p: 'Não consigo fazer login. O que faço?', r: 'Verifique se o e-mail e senha estão corretos. Se o problema persistir, use "Esqueci minha senha" na tela de login.' },
         ],
     },
 ];
 
 const ASSUNTOS = [
-    'Problema com entrega',
-    'Dúvida sobre ganhos / pagamento',
-    'Problema com a conta',
-    'Erro no aplicativo',
-    'Acidente ou emergência',
+    'Problema com pedido',
+    'Dúvida sobre agendamento',
+    'Problema financeiro / pagamento',
+    'Erro na plataforma',
+    'Dúvida sobre cardápio',
     'Outros',
 ];
 
-const EntregadorSuporte = () => {
-    const [categoriaAtiva, setCategoriaAtiva] = useState('Entregas');
+const ConfeiteiroSuporte = () => {
+    const [categoriaAtiva, setCategoriaAtiva] = useState('Pedidos');
     const [faqAberto, setFaqAberto] = useState(null);
     const [assunto, setAssunto] = useState(ASSUNTOS[0]);
     const [mensagem, setMensagem] = useState('');
@@ -60,12 +65,12 @@ const EntregadorSuporte = () => {
     const [tickets, setTickets] = useState([]);
 
     const userId = AuthService.getUserId();
-    const nomeUsuario = AuthService.getCurrentUser()?.nome || 'Entregador';
+    const nomeUsuario = AuthService.getCurrentUser()?.nome || 'Confeiteiro';
 
     const carregarTickets = useCallback(async () => {
         if (!userId) return;
         try {
-            const res = await ApiService.get(`/suporte/tickets/usuario/${userId}`).catch(() => null);
+            const res = await api.get(`/suporte/tickets/usuario/${userId}`).catch(() => null);
             const lista = Array.isArray(res) ? res : Array.isArray(res?.content) ? res.content : [];
             setTickets(lista.slice(0, 5));
         } catch (_) { /* silencioso */ }
@@ -79,10 +84,10 @@ const EntregadorSuporte = () => {
         setEnviando(true);
         setErro('');
         try {
-            await ApiService.post('/suporte/tickets', {
+            await api.post('/suporte/tickets', {
                 assunto,
                 mensagem: mensagem.trim(),
-                tipoUsuario: 'ENTREGADOR',
+                tipoUsuario: 'CONFEITEIRO',
                 usuarioId: userId,
                 prioridade: 'media',
                 status: 'ABERTO',
@@ -115,7 +120,7 @@ const EntregadorSuporte = () => {
     const faqAtual = FAQ.find(f => f.categoria === categoriaAtiva)?.itens || [];
 
     return (
-        <div className={Styles.pagina} style={{ '--cor-primaria': '#2563eb', '--cor-secundaria': '#0ea5e9' }}>
+        <div className={Styles.pagina} style={{ '--cor-primaria': '#8a2be2', '--cor-secundaria': '#ff69b4' }}>
             {/* Hero */}
             <div className={Styles.hero}>
                 <div className={Styles.heroInner}>
@@ -139,13 +144,13 @@ const EntregadorSuporte = () => {
                         <strong>WhatsApp</strong>
                         <span>Resposta rápida</span>
                     </a>
-                    <a href="mailto:entregador@docelivery.com.br" className={Styles.canal}>
-                        <div className={Styles.canalIcone} style={{ background: '#dbeafe' }}><IoMail size={20} color="#2563eb" /></div>
+                    <a href="mailto:suporte@docelivery.com.br" className={Styles.canal}>
+                        <div className={Styles.canalIcone} style={{ background: '#ede9fe' }}><IoMail size={20} color="#7c3aed" /></div>
                         <strong>E-mail</strong>
                         <span>Até 24h</span>
                     </a>
                     <div className={Styles.canal}>
-                        <div className={Styles.canalIcone} style={{ background: '#e0f2fe' }}><IoCall size={20} color="#0369a1" /></div>
+                        <div className={Styles.canalIcone} style={{ background: '#fce7f3' }}><IoCall size={20} color="#be185d" /></div>
                         <strong>Telefone</strong>
                         <span>Seg–Sex 9h–18h</span>
                     </div>
@@ -154,7 +159,7 @@ const EntregadorSuporte = () => {
                 {/* FAQ */}
                 <div className={Styles.secao}>
                     <div className={Styles.secaoTitulo}>
-                        <IoBicycle size={18} /> Perguntas frequentes
+                        <IoStorefront size={18} /> Perguntas frequentes
                     </div>
                     <div className={Styles.faqCategorias}>
                         {FAQ.map(f => (
@@ -239,4 +244,4 @@ const EntregadorSuporte = () => {
     );
 };
 
-export default EntregadorSuporte;
+export default ConfeiteiroSuporte;

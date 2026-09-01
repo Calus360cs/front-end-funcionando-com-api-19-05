@@ -1,74 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoSearchOutline, IoReceipt, IoEyeOutline } from 'react-icons/io5';
 import Styles from './AdminPanel.module.css';
+import ApiService from '../services/api';
+
+const STATUS_MAP = {
+  entregue: { label: 'Entregue', css: 'ativo' },
+  entregue_confirmado: { label: 'Entregue', css: 'ativo' },
+  preparando: { label: 'Preparando', css: 'pendente' },
+  pendente: { label: 'Pendente', css: 'pendente' },
+  agendado: { label: 'Agendado', css: 'pendente' },
+  pronto: { label: 'Pronto', css: 'pendente' },
+  saiu_para_entrega: { label: 'Em entrega', css: 'pendente' },
+  cancelado: { label: 'Cancelado', css: 'suspenso' },
+};
+
+const getStatus = (raw) => STATUS_MAP[(raw || '').toLowerCase()] || { label: raw || '-', css: 'pendente' };
 
 const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
 
-  const mockOrders = [
-    {
-      id: '#1234',
-      customer: 'Maria Silva',
-      store: 'Doces da Vovó',
-      status: 'entregue',
-      total: 45.90,
-      date: '2024-03-20T14:30:00',
-      items: [
-        { name: 'Brigadeiro Gourmet', quantity: 12, price: 2.50 },
-        { name: 'Beijinho', quantity: 6, price: 2.00 }
-      ]
-    },
-    {
-      id: '#1235',
-      customer: 'João Santos',
-      store: 'Confeitaria Delícia',
-      status: 'preparando',
-      total: 78.50,
-      date: '2024-03-20T15:45:00',
-      items: [
-        { name: 'Torta de Chocolate', quantity: 1, price: 78.50 }
-      ]
-    },
-    {
-      id: '#1236',
-      customer: 'Ana Costa',
-      store: 'Doces & Cia',
-      status: 'cancelado',
-      total: 32.00,
-      date: '2024-03-20T16:20:00',
-      items: [
-        { name: 'Cupcake', quantity: 8, price: 4.00 }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const buscar = async () => {
+      try {
+        setLoading(true);
+        // Busca a lista unificada e limpa diretamente da API Sênior
+        const response = await ApiService.get('/admin/pedidos');
+        setOrders(Array.isArray(response) ? response : []);
+        setErro(null);
+      } catch (err) {
+        setErro('Não foi possível carregar os pedidos em tempo real.');
+        console.error("Erro ao buscar pedidos:", err);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    buscar();
+  }, []);
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.store.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
+  const filteredOrders = orders.filter(order => {
+    const id = String(order.id || '');
+    const cliente = order.nomeCliente || order.cliente?.nome || order.customer || '';
+    const loja = order.nomeLoja || order.loja?.nomeFantasia || order.store || '';
+    const status = (order.status || '').toLowerCase();
+    const matchesSearch = id.includes(searchTerm) ||
+                          cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          loja.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || status === filterStatus;
     return matchesSearch && matchesFilter;
   });
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'entregue': return 'ativo';
-      case 'preparando': return 'pendente';
-      case 'cancelado': return 'suspenso';
-      default: return 'pendente';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'entregue': return 'Entregue';
-      case 'preparando': return 'Preparando';
-      case 'cancelado': return 'Cancelado';
-      default: return status;
-    }
-  };
 
   return (
     <div className={Styles.adminPanel}>
@@ -77,111 +62,91 @@ const AdminOrders = () => {
           <IoSearchOutline className={Styles.searchIcon} />
           <input
             type="text"
-            placeholder="Buscar pedidos..."
+            placeholder="Buscar por ID, cliente ou loja..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={Styles.searchInput}
           />
         </div>
-        
         <div className={Styles.filterContainer}>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={Styles.filterSelect}
-          >
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={Styles.filterSelect}>
             <option value="all">Todos os pedidos</option>
+            <option value="pendente">Pendente</option>
             <option value="preparando">Preparando</option>
-            <option value="entregue">Entregues</option>
-            <option value="cancelado">Cancelados</option>
+            <option value="pronto">Pronto</option>
+            <option value="saiu_para_entrega">Em entrega</option>
+            <option value="entregue">Entregue</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>
       </div>
 
-      <div className={Styles.tableContainer}>
-        <table className={Styles.dataTable}>
-          <thead>
-            <tr>
-              <th>Pedido</th>
-              <th>Cliente</th>
-              <th>Loja</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Data/Hora</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map(order => (
-              <tr key={order.id}>
-                <td>
-                  <div className={Styles.userInfo}>
-                    <div className={Styles.userAvatar}>
-                      <IoReceipt size={16} />
-                    </div>
-                    <div>
-                      <div className={Styles.userName}>{order.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{order.customer}</td>
-                <td>{order.store}</td>
-                <td>
-                  <span className={`${Styles.status} ${Styles[getStatusColor(order.status)]}`}>
-                    {getStatusText(order.status)}
-                  </span>
-                </td>
-                <td>R$ {(order.total ?? 0).toFixed(2)}</td>
-                <td>{new Date(order.date).toLocaleString('pt-BR')}</td>
-                <td>
-                  <div className={Styles.actionButtons}>
-                    <button 
-                      className={Styles.actionBtn}
-                      onClick={() => setSelectedOrder(order)}
-                      title="Ver detalhes"
-                    >
-                      <IoEyeOutline size={16} />
-                    </button>
-                  </div>
-                </td>
+      {erro && <div className={Styles.errorBanner}>⚠️ {erro}</div>}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#8a2be2' }}>Carregando pedidos...</div>
+      ) : (
+        <div className={Styles.tableContainer}>
+          <table className={Styles.dataTable}>
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Cliente</th>
+                <th>Loja</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Data</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>Nenhum pedido encontrado de forma real no banco.</td></tr>
+              ) : filteredOrders.map((order) => {
+                const cliente = order.nomeCliente || order.cliente?.nome || '-';
+                const loja = order.nomeLoja || order.loja?.nomeFantasia || '-';
+                const total = order.valorPedido ?? 0;
+                const data = order.dataHoraPedido || '';
+                const { label, css } = getStatus(order.status);
+                return (
+                  <tr key={order.id}>
+                    <td>#{order.id}</td>
+                    <td>{cliente}</td>
+                    <td>{loja}</td>
+                    <td><span className={`${Styles.status} ${Styles[css]}`}>{label}</span></td>
+                    <td>R$ {Number(total).toFixed(2)}</td>
+                    <td>{data ? new Date(data).toLocaleString('pt-BR') : '-'}</td>
+                    <td>
+                      <button className={Styles.actionBtn} onClick={() => setSelectedOrder(order)}>
+                        <IoEyeOutline size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {selectedOrder && (
         <div className={Styles.modal} onClick={() => setSelectedOrder(null)}>
           <div className={Styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3>Detalhes do Pedido {selectedOrder.id}</h3>
+            <h3>Detalhes do Pedido #{selectedOrder.id}</h3>
             <div className={Styles.userDetails}>
-              <p><strong>Cliente:</strong> {selectedOrder.customer}</p>
-              <p><strong>Loja:</strong> {selectedOrder.store}</p>
-              <p><strong>Status:</strong> {getStatusText(selectedOrder.status)}</p>
-              <p><strong>Data/Hora:</strong> {new Date(selectedOrder.date).toLocaleString('pt-BR')}</p>
-              <p><strong>Total:</strong> R$ {(selectedOrder.total ?? 0).toFixed(2)}</p>
-              
-              <h4 style={{ color: '#8a2be2', marginTop: '1.5rem', marginBottom: '1rem' }}>Itens do Pedido:</h4>
-              {selectedOrder.items.map((item, index) => (
-                <div key={index} style={{ 
-                  background: 'rgba(138, 43, 226, 0.05)', 
-                  padding: '0.75rem', 
-                  borderRadius: '8px', 
-                  marginBottom: '0.5rem' 
-                }}>
-                  <p style={{ margin: '0.25rem 0' }}>
-                    <strong>{item.name}</strong>
-                  </p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-                    Quantidade: {item.quantity} | Preço unitário: R$ {(item.price ?? 0).toFixed(2)}
-                  </p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', fontWeight: '600' }}>
-                    Subtotal: R$ {((item.quantity ?? 0) * (item.price ?? 0)).toFixed(2)}
-                  </p>
-                </div>
-              ))}
+              <p><strong>Cliente:</strong> {selectedOrder.nomeCliente || selectedOrder.cliente?.nome || '-'}</p>
+              <p><strong>Loja:</strong> {selectedOrder.nomeLoja || selectedOrder.loja?.nomeFantasia || '-'}</p>
+              <p><strong>Status:</strong> <span className={`${Styles.status} ${Styles[getStatus(selectedOrder.status).css]}`}>{getStatus(selectedOrder.status).label}</span></p>
+              <p><strong>Total:</strong> R$ {Number(selectedOrder.valorPedido ?? 0).toFixed(2)}</p>
+              <p><strong>Data:</strong> {selectedOrder.dataHoraPedido ? new Date(selectedOrder.dataHoraPedido).toLocaleString('pt-BR') : '-'}</p>
+              <p><strong>Itens:</strong></p>
+              <ul>
+                {(selectedOrder.itens || []).map(item => (
+                  <li key={item.id}>{item.quantidade}x {item.nomeProduto} - R$ {Number(item.precoUnitario).toFixed(2)}</li>
+                ))}
+              </ul>
             </div>
-            <button 
+            <button
               className={Styles.closeBtn}
               onClick={() => setSelectedOrder(null)}
             >

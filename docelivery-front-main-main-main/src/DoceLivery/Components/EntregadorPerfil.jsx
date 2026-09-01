@@ -1,6 +1,96 @@
-import React, { useState } from 'react';
-import { IoPersonOutline, IoCarOutline, IoCardOutline } from 'react-icons/io5';
+import React, { useEffect, useState } from 'react';
+import { IoPersonOutline, IoCarOutline, IoSparklesOutline, IoCheckmarkCircleOutline } from 'react-icons/io5';
 import Styles from './EntregadorPerfil.module.css';
+import EntregadorService from '../services/entregadorService';
+
+const encontrarValor = (obj, chaves) => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  const fila = [obj];
+
+  while (fila.length > 0) {
+    const atual = fila.shift();
+
+    if (Array.isArray(atual)) {
+      fila.push(...atual);
+      continue;
+    }
+
+    if (!atual || typeof atual !== 'object') continue;
+
+    for (const chave of chaves) {
+      if (Object.prototype.hasOwnProperty.call(atual, chave)) {
+        const valor = atual[chave];
+        if (valor !== undefined && valor !== null && valor !== '') return valor;
+      }
+    }
+
+    fila.push(...Object.values(atual));
+  }
+
+  return undefined;
+};
+
+const extrairPerfilPrincipal = (payload) => {
+  if (!payload || typeof payload !== 'object') return {};
+
+  const candidatos = [];
+  const visitar = (valor) => {
+    if (!valor || typeof valor !== 'object') return;
+
+    if (Array.isArray(valor)) {
+      valor.forEach(visitar);
+      return;
+    }
+
+    const temCamposPerfil = ['nome', 'nomeCompleto', 'name', 'fullName', 'email', 'telefone', 'phone', 'celular', 'cpf', 'documento', 'dataNascimento', 'data_nascimento', 'birthDate', 'cnh', 'numeroCnh', 'placa', 'veiculo', 'tipoVeiculo', 'marcaVeiculo', 'modeloVeiculo'].some((chave) => Object.prototype.hasOwnProperty.call(valor, chave));
+
+    if (temCamposPerfil) {
+      candidatos.push(valor);
+    }
+
+    Object.values(valor).forEach(visitar);
+  };
+
+  visitar(payload);
+
+  if (candidatos.length === 0) return payload;
+
+  return candidatos.sort((a, b) => Object.keys(b).length - Object.keys(a).length)[0] || payload;
+};
+
+const formatarDataParaInput = (valor) => {
+  if (!valor) return '';
+
+  if (typeof valor === 'string') {
+    const dataSemTempo = valor.includes('T') ? valor.split('T')[0] : valor;
+    const match = dataSemTempo.match(/(\d{4})-(\d{2})-(\d{2})/);
+
+    if (match) {
+      return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+
+    const data = new Date(valor);
+    if (!Number.isNaN(data.getTime())) {
+      return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+    }
+  }
+
+  if (valor instanceof Date) {
+    return `${valor.getFullYear()}-${String(valor.getMonth() + 1).padStart(2, '0')}-${String(valor.getDate()).padStart(2, '0')}`;
+  }
+
+  return String(valor);
+};
+
+const normalizarVeiculo = (valor) => {
+  if (!valor) return '';
+
+  const texto = String(valor).toLowerCase();
+  if (texto.includes('moto')) return 'Moto';
+  if (texto.includes('carro')) return 'Carro';
+  if (texto.includes('bicicleta')) return 'Bicicleta';
+  return String(valor);
+};
 
 const EntregadorPerfil = ({ onUserDataUpdate }) => {
   const [dadosPessoais, setDadosPessoais] = useState({
@@ -18,8 +108,91 @@ const EntregadorPerfil = ({ onUserDataUpdate }) => {
     marca: '',
     modelo: '',
   });
+  const [salvando, setSalvando] = useState(false);
+  const [carregandoPerfil, setCarregandoPerfil] = useState(true);
 
-  const handleSalvarPerfil = () => {
+  useEffect(() => {
+    const carregarPerfil = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setCarregandoPerfil(false);
+        return;
+      }
+
+      try {
+        const response = await EntregadorService.getEntregador(userId);
+        const perfil = extrairPerfilPrincipal(response?.data || response?.entregador || response?.dados || response?.usuario || response || {});
+
+        const dadosPessoaisApi = {
+          nome: encontrarValor(perfil, ['nome', 'nomeCompleto', 'name', 'fullName', 'nomeUsuario', 'usuarioNome']),
+          email: encontrarValor(perfil, ['email', 'mail', 'emailUsuario']),
+          telefone: encontrarValor(perfil, ['telefone', 'phone', 'celular', 'whatsapp', 'telefoneContato']),
+          cpf: encontrarValor(perfil, ['cpf', 'documento']),
+          dataNascimento: formatarDataParaInput(encontrarValor(perfil, ['dataNascimento', 'data_nascimento', 'birthDate', 'dataAniversario'])),
+          cnh: encontrarValor(perfil, ['cnh', 'numeroCnh'])
+        };
+
+        const dadosVeiculoApi = {
+          tipo: normalizarVeiculo(encontrarValor(perfil, ['veiculo', 'tipoVeiculo', 'tipo', 'vehicleType', 'veiculoTipo', 'meioTransporte'])),
+          placa: encontrarValor(perfil, ['placa', 'plate', 'placaVeiculo']),
+          marca: encontrarValor(perfil, ['marcaVeiculo', 'marca', 'vehicleBrand', 'marcaVeiculoEntregador']),
+          modelo: encontrarValor(perfil, ['modeloVeiculo', 'modelo', 'vehicleModel', 'modeloVeiculoEntregador'])
+        };
+
+        const dadosPessoaisAtualizados = Object.fromEntries(
+          Object.entries(dadosPessoaisApi).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        );
+
+        const dadosVeiculoAtualizados = Object.fromEntries(
+          Object.entries(dadosVeiculoApi).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        );
+
+        setDadosPessoais((prev) => ({ ...prev, ...dadosPessoaisAtualizados }));
+        setDadosVeiculo((prev) => ({ ...prev, ...dadosVeiculoAtualizados }));
+
+        if (onUserDataUpdate) {
+          onUserDataUpdate({
+            nome: dadosPessoaisAtualizados.nome || localStorage.getItem('nomeEntregador') || 'Entregador',
+            veiculo: `${dadosVeiculoAtualizados.marca || ''} ${dadosVeiculoAtualizados.modelo || ''}`.trim() || dadosVeiculoAtualizados.tipo || localStorage.getItem('veiculo') || 'Moto'
+          });
+        }
+
+        if (dadosPessoaisAtualizados.nome) localStorage.setItem('userName', dadosPessoaisAtualizados.nome);
+        if (dadosPessoaisAtualizados.email) localStorage.setItem('userEmail', dadosPessoaisAtualizados.email);
+        if (dadosPessoaisAtualizados.telefone) localStorage.setItem('userTelefone', dadosPessoaisAtualizados.telefone);
+        if (dadosVeiculoAtualizados.tipo) localStorage.setItem('userVeiculo', dadosVeiculoAtualizados.tipo);
+        if (dadosVeiculoAtualizados.placa) localStorage.setItem('userPlacaVeiculo', dadosVeiculoAtualizados.placa);
+        if (dadosPessoaisAtualizados.nome) localStorage.setItem('nomeEntregador', dadosPessoaisAtualizados.nome);
+        if (dadosVeiculoAtualizados.tipo || dadosVeiculoAtualizados.marca || dadosVeiculoAtualizados.modelo) {
+          localStorage.setItem('veiculo', `${dadosVeiculoAtualizados.marca || ''} ${dadosVeiculoAtualizados.modelo || ''}`.trim() || dadosVeiculoAtualizados.tipo || 'Moto');
+        }
+      } catch (error) {
+        console.warn('Não foi possível carregar o perfil do entregador:', error);
+      } finally {
+        setCarregandoPerfil(false);
+      }
+    };
+
+    carregarPerfil();
+  }, []);
+
+  const handleSalvarPerfil = async () => {
+    setSalvando(true);
+    const userId = localStorage.getItem('userId');
+
+    const dadosAtualizados = {
+      nome: dadosPessoais.nome,
+      email: dadosPessoais.email,
+      telefone: dadosPessoais.telefone,
+      cpf: dadosPessoais.cpf,
+      dataNascimento: dadosPessoais.dataNascimento,
+      cnh: dadosPessoais.cnh,
+      veiculo: dadosVeiculo.tipo,
+      placa: dadosVeiculo.placa,
+      marca: dadosVeiculo.marca,
+      modelo: dadosVeiculo.modelo,
+    };
+
     localStorage.setItem('userName', dadosPessoais.nome);
     localStorage.setItem('userEmail', dadosPessoais.email);
     localStorage.setItem('userTelefone', dadosPessoais.telefone);
@@ -27,23 +200,40 @@ const EntregadorPerfil = ({ onUserDataUpdate }) => {
     localStorage.setItem('userPlacaVeiculo', dadosVeiculo.placa);
     localStorage.setItem('nomeEntregador', dadosPessoais.nome);
     localStorage.setItem('veiculo', `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`.trim() || dadosVeiculo.tipo);
-    
+
+    if (userId) {
+      try {
+        await EntregadorService.updateEntregador(userId, dadosAtualizados);
+      } catch (error) {
+        console.warn('Não foi possível salvar o perfil no backend:', error);
+      }
+    }
+
     if (onUserDataUpdate) {
       onUserDataUpdate({
         nome: dadosPessoais.nome,
         veiculo: `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`.trim() || dadosVeiculo.tipo
       });
     }
-    
+
+    setSalvando(false);
     alert('Perfil atualizado com sucesso!');
   };
 
   return (
     <div className={Styles.perfilContainer}>
-      
       <div className={Styles.perfilHeader}>
-        <h2>👤 Meu Perfil</h2>
-        <p>Mantenha suas informações sempre atualizadas</p>
+        <div className={Styles.headerTitleWrap}>
+          <div className={Styles.iconBadge}><IoSparklesOutline size={20} /></div>
+          <div>
+            <h2>Meu Perfil</h2>
+            <p>Gerencie seus dados com o mesmo padrão de excelência do seu atendimento.</p>
+          </div>
+        </div>
+        <div className={Styles.headerStatus}>
+          <IoCheckmarkCircleOutline size={16} />
+          <span>{carregandoPerfil ? 'Sincronizando com a API...' : 'Dados atualizados'}</span>
+        </div>
       </div>
 
       <div className={Styles.secaoCard}>
@@ -160,8 +350,8 @@ const EntregadorPerfil = ({ onUserDataUpdate }) => {
       </div>
 
       <div className={Styles.acoes}>
-        <button className={Styles.salvarBtn} onClick={handleSalvarPerfil}>
-          💾 Salvar Alterações
+        <button className={Styles.salvarBtn} onClick={handleSalvarPerfil} disabled={salvando}>
+          {salvando ? 'Salvando...' : 'Salvar Alterações'}
         </button>
       </div>
     </div>

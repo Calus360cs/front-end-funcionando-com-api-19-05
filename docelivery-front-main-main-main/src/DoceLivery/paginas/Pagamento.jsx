@@ -152,21 +152,24 @@ const Pagamento = () => {
     const maskExpiry = v => v.replace(/\D/g,'').slice(0,4).replace(/(\d{2})(\d)/,'$1/$2');
 
     const handleConfirmar = async () => {
+        if (isProcessing) return;
+        if (!itens || itens.length === 0) { alert('Seu carrinho está vazio.'); return; }
         if (!metodo) { alert('Selecione a forma de pagamento.'); return; }
+        
         if ((metodo === 'CREDIT_CARD' || metodo === 'DEBIT_CARD') &&
             (!cardData.numero || !cardData.nome || !cardData.validade || !cardData.cvv)) {
             alert('Preencha todos os dados do cartão.'); return;
         }
+
         setIsProcessing(true);
+        
         try {
             const usuario = AuthService.getCurrentUser();
             
-            // 1. Envia o pedido mapeado com o status exato que seu Enum Java aceita
             const novoPedido = {
                 cliente:               { id: Number(usuario?.id || 7) },
-                loja:                 { id: Number(loja?.id || 2) }, // ✅ Garanta que o ID bata com a sua loja ativa (vimos ID 2 no seu banco!)
-                confeiteiro:          { id: Number(loja?.id || 2) }, // 🟢 ADICIONE ESTA LINHA: Alimenta o confeiteiro_id para o banco não salvar NULL!
-                
+                loja:                 { id: Number(loja?.id || 2) }, 
+                confeiteiro:          { id: Number(loja?.id || 2) }, 
                 valorPedido:          total,
                 formaPagamento:       metodo, 
                 status:               metodo === 'DINHEIRO' ? 'AGUARDANDO_PAGAMENTO' : 'NOVO', 
@@ -178,33 +181,34 @@ const Pagamento = () => {
                 itens: itens.map(item => ({
                     produto:        { id: item.id },
                     quantidade:     item.quantity,
-                    precoUnitario:  item.price
+                    precoUnitario:  item.price,
+                    imagemUrl:      item.imageUrl || item.image || null
                 }))
             };
             
+            // 1. Cria o pedido original e recebe o ID unificado gerado pelo banco
             const res = await OrderService.createOrder(novoPedido);
             const pedidoSalvo = res?.data || res;
 
-            // 2. Transmite os dados para o gateway Mercado Pago
+            // 2. 🟢 CORREÇÃO CRÍTICA: Passamos o ID gerado (ex: 30052) dentro de dadosPagamentoDTO
             const dadosPagamentoDTO = {
-                id:              pedidoSalvo.id || null, 
+                id:              Number(pedidoSalvo.id), 
                 clienteId:       Number(usuario?.id || 7), 
-                lojaId:          Number(loja?.id || 10),    
+                lojaId:          Number(loja?.id || 2),    
                 nomeCliente:     usuario?.nome || clienteLocal.nome,
                 telefoneCliente: usuario?.telefone || "",
                 enderecoEntrega: enderecoFormatado,
                 status:          metodo === 'DINHEIRO' ? 'AGUARDANDO_PAGAMENTO' : 'NOVO',
                 total:           total, 
-                
                 email:           usuario?.email || 'TESTUSER8440996294542294927@testuser.com', 
                 tokenCartao:     (metodo === 'CREDIT_CARD' || metodo === 'DEBIT_CARD') ? cardData.numero : null,
                 metodo:          metodo.toLowerCase(), 
-
                 itens: itens.map(item => ({
                     produtoId:     item.id,
                     nomeProduto:   item.name || item.title,
                     quantidade:    parseInt(item.quantity) || 1,
-                    precoUnitario: parseFloat(item.price) || 0
+                    precoUnitario: parseFloat(item.price) || 0,
+                    imagemUrl:     item.imageUrl || item.image || null
                 }))
             };
 
@@ -212,7 +216,21 @@ const Pagamento = () => {
             const respostaPagamento = await PaymentService.processarPagamento(dadosPagamentoDTO);
             console.log('Resposta do pagamento recebida:', respostaPagamento);
 
-            localStorage.setItem('currentOrder', JSON.stringify(pedidoSalvo));
+            const orderParaSalvar = {
+                ...pedidoSalvo,
+                itens: pedidoSalvo.itens?.length > 0
+                    ? pedidoSalvo.itens
+                    : itens.map(item => ({
+                        nomeProduto:   item.name || item.title,
+                        quantidade:    parseInt(item.quantity) || 1,
+                        precoUnitario: parseFloat(item.price) || 0,
+                        imagemUrl:     item.imageUrl || item.image || null,
+                    })),
+                total,
+                loja: { nome: loja?.name || loja?.nome || 'Confeitaria' },
+            };
+            localStorage.setItem('currentOrder', JSON.stringify(orderParaSalvar));
+            localStorage.setItem('currentOrderId', String(pedidoSalvo.id));
             adicionarVenda(total);
             clearCart();
             localStorage.removeItem('checkoutData');
@@ -220,7 +238,6 @@ const Pagamento = () => {
         } catch (err) {
             console.error("Erro detalhado no checkout:", err);
             alert('Erro ao processar pedido. Verifique os dados e tente novamente.');
-        } finally {
             setIsProcessing(false);
         }
     };
@@ -330,7 +347,7 @@ const Pagamento = () => {
                                 <div className={Styles.formGroup}>
                                     <label>Cidade</label>
                                     <input className={Styles.input} value={endereco.cidade}
-                                        onChange={e => setEndereco(p => ({...p, cidade: e.target.value}))}
+                                        onChange={e => setEndereco(p => ({...p, city: e.target.value}))}
                                         placeholder="Cidade"/>
                                 </div>
                             </div>
@@ -414,7 +431,7 @@ const Pagamento = () => {
                         <textarea
                             className={Styles.textarea}
                             rows={3}
-                            placeholder="Ex: Sem açúcar, alergia a nozes, deixar na portaria..."
+                            placeholder="Ex: Sem açúcar, allergy a nozes, deixar na portaria..."
                             value={obsGeral}
                             onChange={e => setObsGeral(e.target.value)}
                         />

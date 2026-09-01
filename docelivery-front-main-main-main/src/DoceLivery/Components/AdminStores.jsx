@@ -1,61 +1,41 @@
-import React, { useState } from 'react';
-import { IoSearchOutline, IoRestaurant, IoEyeOutline, IoCheckmarkOutline, IoBanOutline } from 'react-icons/io5';
+import React, { useState, useEffect } from 'react';
+import { IoSearchOutline, IoEyeOutline } from 'react-icons/io5';
 import Styles from './AdminPanel.module.css';
+import ApiService from '../services/api';
 
 const AdminStores = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedStore, setSelectedStore] = useState(null);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
 
-  const mockStores = [
-    {
-      id: 1,
-      name: 'Doces da Vovó',
-      owner: 'Maria Santos',
-      email: 'maria@docesvovo.com',
-      status: 'ativo',
-      joinDate: '2024-01-20',
-      products: 45,
-      orders: 234,
-      rating: 4.8,
-      phone: '(11) 99999-9999'
-    },
-    {
-      id: 2,
-      name: 'Confeitaria Delícia',
-      owner: 'João Silva',
-      email: 'joao@delicia.com',
-      status: 'pendente',
-      joinDate: '2024-03-15',
-      products: 12,
-      orders: 0,
-      rating: 0,
-      phone: '(11) 88888-8888'
-    },
-    {
-      id: 3,
-      name: 'Doces & Cia',
-      owner: 'Ana Costa',
-      email: 'ana@docescia.com',
-      status: 'suspenso',
-      joinDate: '2024-02-10',
-      products: 28,
-      orders: 89,
-      rating: 4.2,
-      phone: '(11) 77777-7777'
-    }
-  ];
+  useEffect(() => {
+    const buscar = async () => {
+      try {
+        setLoading(true);
+        // Busca os dados puros do backend sem nenhuma transformação que quebre o DTO
+        const res = await ApiService.get('/confeiteiro');
+        setStores(Array.isArray(res) ? res : []);
+        setErro(null);
+      } catch (err) {
+        setErro('Não foi possível carregar as lojas.');
+        console.error("Erro ao carregar lojas:", err);
+        setStores([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    buscar();
+  }, []);
 
-  const filteredStores = mockStores.filter(store => {
-    const matchesSearch = store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         store.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || store.status === filterStatus;
-    return matchesSearch && matchesFilter;
+  // Filtro corrigido para buscar corretamente nos campos do objeto aninhado
+  const filteredStores = stores.filter(confeiteiro => {
+    const name = confeiteiro.loja?.nomeFantasia || confeiteiro.loja?.nomeLoja || '';
+    const owner = confeiteiro.nome || confeiteiro.usuario?.nome || '';
+    return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           owner.toLowerCase().includes(searchTerm.toLowerCase());
   });
-
-  const handleStoreAction = (storeId, action) => {
-    console.log(`Ação ${action} para loja ${storeId}`);
-  };
 
   return (
     <div className={Styles.adminPanel}>
@@ -70,114 +50,92 @@ const AdminStores = () => {
             className={Styles.searchInput}
           />
         </div>
-        
-        <div className={Styles.filterContainer}>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={Styles.filterSelect}
-          >
-            <option value="all">Todas as lojas</option>
-            <option value="ativo">Ativas</option>
-            <option value="pendente">Pendentes</option>
-            <option value="suspenso">Suspensas</option>
-          </select>
-        </div>
       </div>
 
-      <div className={Styles.tableContainer}>
-        <table className={Styles.dataTable}>
-          <thead>
-            <tr>
-              <th>Loja</th>
-              <th>Proprietário</th>
-              <th>Status</th>
-              <th>Produtos</th>
-              <th>Pedidos</th>
-              <th>Avaliação</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStores.map(store => (
-              <tr key={store.id}>
-                <td>
-                  <div className={Styles.userInfo}>
-                    <div className={Styles.userAvatar}>
-                      <IoRestaurant size={16} />
-                    </div>
-                    <div>
-                      <div className={Styles.userName}>{store.name}</div>
-                      <div className={Styles.userEmail}>{store.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{store.owner}</td>
-                <td>
-                  <span className={`${Styles.status} ${Styles[store.status]}`}>
-                    {store.status === 'ativo' ? 'Ativa' : 
-                     store.status === 'pendente' ? 'Pendente' : 'Suspensa'}
-                  </span>
-                </td>
-                <td>{store.products}</td>
-                <td>{store.orders}</td>
-                <td>{store.rating > 0 ? `${store.rating} ⭐` : 'N/A'}</td>
-                <td>
-                  <div className={Styles.actionButtons}>
-                    <button 
-                      className={Styles.actionBtn}
-                      onClick={() => setSelectedStore(store)}
-                      title="Ver detalhes"
-                    >
-                      <IoEyeOutline size={16} />
-                    </button>
-                    {store.status === 'pendente' && (
-                      <button 
-                        className={`${Styles.actionBtn} ${Styles.activate}`}
-                        onClick={() => handleStoreAction(store.id, 'approve')}
-                        title="Aprovar"
-                      >
-                        <IoCheckmarkOutline size={16} />
-                      </button>
-                    )}
-                    {store.status === 'ativo' && (
-                      <button 
-                        className={`${Styles.actionBtn} ${Styles.suspend}`}
-                        onClick={() => handleStoreAction(store.id, 'suspend')}
-                        title="Suspender"
-                      >
-                        <IoBanOutline size={16} />
-                      </button>
-                    )}
-                  </div>
-                </td>
+      {erro && (
+        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: '0.88rem', color: '#856404' }}>
+          ⚠️ {erro}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#8a2be2' }}>Carregando lojas...</div>
+      ) : (
+        <div className={Styles.tableContainer}>
+          <table className={Styles.dataTable}>
+            <thead>
+              <tr>
+                <th>Loja</th>
+                <th>Proprietário</th>
+                <th>Telefone</th>
+                <th>Cidade</th>
+                <th>CNPJ</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredStores.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
+                    Nenhuma loja encontrada.
+                  </td>
+                </tr>
+              ) : (
+                filteredStores.map((confeiteiro, idx) => {
+                  const dadosLoja = confeiteiro.loja || {};
+                  
+                  return (
+                    <tr key={confeiteiro.id ?? idx}>
+                      {/* 1. Coluna LOJA */}
+                      <td>{dadosLoja.nomeFantasia || dadosLoja.nomeLoja || "Sem nome"}</td>
+                      
+                      {/* 2. Coluna PROPRIETÁRIO */}
+                      <td>{confeiteiro.nome || confeiteiro.usuario?.nome || "Não informado"}</td>
+                      
+                      {/* 3. Coluna TELEFONE */}
+                      <td>{confeiteiro.telefone || dadosLoja.telefone || "-"}</td>
+                      
+                      {/* 4. Coluna CIDADE */}
+                      <td>{confeiteiro.cidade || dadosLoja.cidade || "Barueri"}</td>
+                      
+                      {/* 5. Coluna CNPJ */}
+                      <td>{dadosLoja.cnpj || "-"}</td>
+
+                      {/* 6. Coluna AÇÕES */}
+                      <td>
+                        <button 
+                          className={Styles.actionBtn} 
+                          onClick={() => setSelectedStore(confeiteiro)} 
+                          title="Ver detalhes"
+                        >
+                          <IoEyeOutline size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {selectedStore && (
         <div className={Styles.modal} onClick={() => setSelectedStore(null)}>
           <div className={Styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Detalhes da Loja</h3>
             <div className={Styles.userDetails}>
-              <p><strong>Nome:</strong> {selectedStore.name}</p>
-              <p><strong>Proprietário:</strong> {selectedStore.owner}</p>
-              <p><strong>Email:</strong> {selectedStore.email}</p>
-              <p><strong>Telefone:</strong> {selectedStore.phone}</p>
-              <p><strong>Status:</strong> {selectedStore.status}</p>
-              <p><strong>Data de Cadastro:</strong> {new Date(selectedStore.joinDate).toLocaleDateString('pt-BR')}</p>
-              <p><strong>Total de Produtos:</strong> {selectedStore.products}</p>
-              <p><strong>Total de Pedidos:</strong> {selectedStore.orders}</p>
-              <p><strong>Avaliação:</strong> {selectedStore.rating > 0 ? `${selectedStore.rating} ⭐` : 'Sem avaliações'}</p>
+              
+              <p><strong>Nome:</strong> {selectedStore.loja?.nomeFantasia || '-'}</p>
+              <p><strong>Proprietário:</strong> {selectedStore.nome || '-'}</p>
+              <p><strong>Email:</strong> {selectedStore.email || '-'}</p>
+              <p><strong>Telefone:</strong> {selectedStore.loja?.telefone || selectedStore.telefone || '-'}</p>
+              <p><strong>CNPJ:</strong> {selectedStore.loja?.cnpj || '-'}</p>
+              <p><strong>Endereço:</strong> {selectedStore.loja?.endereco || '-'}</p>
+              <p><strong>Status:</strong> {selectedStore.codStatus || '-'}</p>
+              
             </div>
-            <button 
-              className={Styles.closeBtn}
-              onClick={() => setSelectedStore(null)}
-            >
-              Fechar
-            </button>
+            <button className={Styles.closeBtn} onClick={() => setSelectedStore(null)}>Fechar</button>
           </div>
         </div>
       )}

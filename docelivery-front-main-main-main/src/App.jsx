@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import './index.css';
 
 // Importação das Páginas
@@ -24,7 +24,6 @@ import AdminDashboard from './DoceLivery/paginas/AdminDashboard';
 import AdminChat from './DoceLivery/Components/AdminChat';
 import Agenda from './DoceLivery/Components/Agenda';
 import CalendarioEncomendas from './DoceLivery/Components/CalendarioEncomendas';
-import MeusPedidos from "../../src/DoceLivery/paginas/MeusPedidos.jsx";
 
 // NOVA IMPORTAÇÃO: Adicionando o componente da tela de Dashboard do Entregador
 import EntregadorDashboard from './DoceLivery/paginas/EntregadorDashboard'; 
@@ -50,9 +49,13 @@ function App() {
                   <Route path="/" element={<PaginaCompleta />} /> 
 
                   <Route path="/docelivery/cliente/Home-Page" element={<HomePage />} />
+                  <Route path="/docelivery/cliente/home-page" element={<HomePage />} />
+                  <Route path="/docelivery/cliente/home" element={<HomePage />} />
                   
                   {/* Outras rotas permanecem iguais */}
                   <Route path="/docelivery/confeiteiro/Confeiteiro-Dashboard" element={<ConfeiteiroDashboard />} />
+                  <Route path="/docelivery/confeiteiro/dashboard" element={<ConfeiteiroDashboard />} />
+                  <Route path="/docelivery/confeiteiro" element={<Navigate to="/docelivery/confeiteiro/dashboard" replace />} />
                   
                   {/* INCLUSÃO DA ROTA DE CADASTRO DO CONFEITEIRO */}
                   <Route path="/docelivery/confeiteiro/cadastro" element={<CadastroConfeiteiro />} />
@@ -61,20 +64,22 @@ function App() {
                   <Route path="/docelivery/entregador/pagina-entregador" element={<PaginaEntregador />} />
                   <Route path="/docelivery/entregador/cadastro-entregador" element={<CadastroEntregador />} />
                   <Route path="/docelivery/entregador/login-entregador" element={<LoginEntregador />} />
+                  <Route path="/docelivery/entregador/login" element={<LoginEntregador />} />
+                  <Route path="/docelivery/entregador/dashboard" element={<EntregadorDashboard />} />
                   
                   {/* NOVA ROTA CONFIGURADA: Link direto para o Dashboard do Entregador */}
-                  {/* Altere de /dashboard para /home */}
                   <Route path="/docelivery/entregador/home" element={<EntregadorDashboard />} />
 
                   {/* Demais Rotas do Sistema */}
                   <Route path="/docelivery/home/apresentacao-projeto" element={<ApresentacaoProjeto />} />
                   <Route path="/docelivery/cliente/cadastro-cliente" element={<CadastroCliente />} />
                   <Route path="/docelivery/cliente/login-cliente" element={<LoginCliente />} />
+                  <Route path="/docelivery/cliente/login" element={<LoginCliente />} />
                   <Route path="/docelivery/confeiteiro/login-confeiteiro" element={<LoginConfeiteiro />} />
+                  <Route path="/docelivery/confeiteiro/login" element={<LoginConfeiteiro />} />
                   <Route path="/docelivery/cliente/recuperar-senha" element={<RecuperarSenha />} />
                   <Route path="/docelivery/cliente/pagamento" element={<Pagamento />} />
                   <Route path="/docelivery/cliente/perfil" element={<PerfilCliente />} />
-                  <Route path="/docelivery/cliente/meus-pedidos" element={<MeusPedidos />} />
                   <Route path="/docelivery/cliente/pedido-status" element={<OrderStatus />} />
                   <Route path="/docelivery/loja/:lojaId" element={<LojaIndividual />} />
                   <Route path="/docelivery/admin/login" element={<LoginAdmin />} />

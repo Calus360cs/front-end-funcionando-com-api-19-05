@@ -109,6 +109,63 @@
   box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
 }
 
+/* SUPORTE RÁPIDO */
+.supportCard {
+  margin: 20px 20px 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.08), rgba(138, 43, 226, 0.08));
+  border: 1px solid rgba(138, 43, 226, 0.12);
+}
+
+.supportCard h3 {
+  margin: 0 0 6px;
+  color: #8a2be2;
+}
+
+.supportCard p {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.supportActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.supportTextarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 12px 14px;
+  border: 1px solid rgba(138, 43, 226, 0.18);
+  border-radius: 10px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.supportBtn {
+  align-self: flex-start;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.supportBtn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.supportSuccess {
+  color: #0f766e;
+  font-weight: 600;
+}
+
 /* CORPO DO FORMULÁRIO */
 .body {
   padding: 30px;

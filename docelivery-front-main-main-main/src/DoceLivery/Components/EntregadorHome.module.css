@@ -1,14 +1,15 @@
 .homeContainer {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 24px;
 }
 
 .statusCard {
-  background: white;
-  border-radius: 15px;
-  padding: 25px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%);
+  border: 1px solid #ece7ff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
 }
 
 .statusHeader {
@@ -32,12 +33,13 @@
 }
 
 .statusIndicator {
-  width: 50px;
-  height: 50px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
 .statusDot {
@@ -55,12 +57,12 @@
 
 .statusToggle {
   width: 100%;
-  padding: 15px;
+  padding: 14px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   color: white;
-  font-weight: 600;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: 0.98rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -77,13 +79,14 @@
 }
 
 .statCard {
-  background: white;
-  border-radius: 15px;
-  padding: 25px;
+  background: linear-gradient(145deg, #ffffff 0%, #fcfaff 100%);
+  border: 1px solid #efe8ff;
+  border-radius: 18px;
+  padding: 20px;
   display: flex;
   align-items: center;
   gap: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   transition: all 0.2s ease;
 }
 
@@ -107,9 +110,10 @@
 
 .dicasCard {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
-  border-radius: 15px;
+  border-radius: 18px;
   padding: 20px;
   border-left: 4px solid #f59e0b;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.16);
 }
 
 .dicasCard h4 {

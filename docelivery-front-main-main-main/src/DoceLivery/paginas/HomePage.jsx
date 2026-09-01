@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { 
     IoCartOutline, IoHeartOutline, IoHeart, IoChevronBackOutline, 
     IoChevronForwardOutline, IoPersonOutline, IoLogOutOutline, 
-    IoSearchOutline, IoLocationOutline, IoStar, IoStarOutline, IoStarHalf, IoTimeOutline
+    IoSearchOutline, IoLocationOutline, IoStar, IoStarOutline, IoStarHalf, IoTimeOutline,
+    IoReceiptOutline
 } from 'react-icons/io5';
 
 import CartComponent from "../Components/CartComponent.jsx";
 import ConfirmationModal from "../Components/ConfirmationModal.jsx";
 import FavoritesList from "../Components/FavoritesList.jsx";
+import PedidosPanel from "../Components/PedidosPanel.jsx";
 
 import { useCartStore } from "../context/CartContext.jsx"; 
 import { useFavorites } from "../context/FavoritesContext.jsx";
@@ -46,6 +48,7 @@ const HomePage = () => {
     const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
     const [currentStoreIndex, setCurrentStoreIndex] = useState(0);
     const [showFavorites, setShowFavorites] = useState(false);
+    const [showPedidos, setShowPedidos] = useState(false);
 
     // Estados de Busca e Endereço
     const [searchTerm, setSearchTerm] = useState('');
@@ -394,6 +397,14 @@ const HomePage = () => {
                             >
                                 <IoPersonOutline size={20} />
                             </button>
+
+                            <button
+                                className={Styles.perfil_btn}
+                                onClick={() => setShowPedidos(true)}
+                                title="Meus Pedidos"
+                            >
+                                <IoReceiptOutline size={20} />
+                            </button>
                             
                             <button className={Styles.cart_btn} onClick={toggleCart}>
                                 <IoCartOutline size={24} />
@@ -601,6 +612,8 @@ const HomePage = () => {
             {isClearingCart && <ConfirmationModal />}
             
             <FavoritesList isOpen={showFavorites} onClose={() => setShowFavorites(false)} />
+
+            <PedidosPanel isOpen={showPedidos} onClose={() => setShowPedidos(false)} />
 
             {/* MODAL DO VIA CEP */}
             {showAddressModal && (

@@ -1,0 +1,536 @@
+.pagina {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ff69b4 0%, #8a2be2 100%);
+  padding: 20px;
+  font-family: 'Merriweather', serif;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.btnVoltar, .btnAtualizar {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.btnVoltar:hover, .btnAtualizar:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.titulo {
+  margin: 0;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.subtitulo {
+  margin: 2px 0 0;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.85rem;
+}
+
+.btnAtualizar {
+  margin-left: auto;
+}
+
+/* ── FILTROS ── */
+.filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filtroBotao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtroBotao:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.filtroAtivo {
+  background: white;
+  color: #8a2be2;
+  border-color: white;
+}
+
+.filtroBadge {
+  background: rgba(138,43,226,0.2);
+  color: inherit;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.78rem;
+}
+
+.filtroAtivo .filtroBadge {
+  background: rgba(138,43,226,0.15);
+}
+
+/* ── CARD ── */
+.card {
+  background: white;
+  border-radius: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+}
+
+.cardCancelado {
+  opacity: 0.75;
+}
+
+.cardTopo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 18px;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.cardTopoEsq {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pedidoNum {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.lojaNome {
+  color: #8a2be2;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.pedidoData {
+  color: #999;
+  font-size: 0.78rem;
+}
+
+.cardTopoDireita {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.totalValor {
+  font-weight: 700;
+  color: #ff69b4;
+  font-size: 1rem;
+}
+
+/* ── BARRA DE PROGRESSO ── */
+.progressoBar {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  overflow-x: auto;
+}
+
+.progressoPasso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.progressoIcone {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.progressoAtivo .progressoIcone {
+  background: #8a2be2;
+  color: white;
+}
+
+.progressoAtual .progressoIcone {
+  background: #ff69b4;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(255,105,180,0.25);
+}
+
+.progressoLabel {
+  font-size: 0.68rem;
+  color: #aaa;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progressoAtivo .progressoLabel {
+  color: #8a2be2;
+  font-weight: 600;
+}
+
+.progressoAtual .progressoLabel {
+  color: #ff69b4;
+  font-weight: 700;
+}
+
+.progressoLinha {
+  flex: 1;
+  height: 3px;
+  background: #e0e0e0;
+  min-width: 20px;
+  margin-bottom: 18px;
+  transition: background 0.3s;
+}
+
+.progressoLinhaAtiva {
+  background: #8a2be2;
+}
+
+/* ── DETALHES ── */
+.detalhes {
+  padding: 14px 18px 18px;
+  border-top: 1px dashed #eee;
+}
+
+.itensList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.itensList strong {
+  font-size: 0.85rem;
+  color: #555;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.itemLinha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemFoto {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.itemNome {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #444;
+}
+
+.itemPreco {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ff69b4;
+  white-space: nowrap;
+}
+
+.detalheInfo {
+  font-size: 0.83rem;
+  color: #666;
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnAvaliar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btnAvaliar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(138,43,226,0.3);
+}
+
+.jaAvaliado {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* ── ESTADOS ── */
+.loading {
+  text-align: center;
+  color: white;
+  padding: 40px;
+  font-size: 1rem;
+}
+
+.erro {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  color: #dc3545;
+}
+
+.btnTentar {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vazio {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.vazio span {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.vazio p {
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.btnComprar {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── MODAL AVALIAÇÃO ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalAvaliacao {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.btnFechar {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.abas {
+  display: flex;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.aba {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #999;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.abaAtiva {
+  color: #8a2be2;
+  border-bottom-color: #8a2be2;
+}
+
+.abaConteudo {
+  padding: 20px;
+  text-align: center;
+}
+
+.avaliacaoNome {
+  font-weight: 700;
+  color: #333;
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.comentario {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+  margin-top: 8px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.comentario:focus {
+  outline: none;
+  border-color: #ff69b4;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btnCancelar {
+  flex: 1;
+  padding: 10px;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnEnviar {
+  flex: 2;
+  padding: 10px;
+  background: linear-gradient(135deg, #ff69b4, #8a2be2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btnEnviar:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btnEnviar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 500px) {
+  .progressoLabel { display: none; }
+  .filtros { gap: 6px; }
+  .filtroBotao { padding: 6px 10px; font-size: 0.8rem; }
+}
